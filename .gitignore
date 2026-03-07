@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+*.jpg
+*.png
+*.jpeg
+tsconfig.tsbuildinfo
+supabase/.temp/
