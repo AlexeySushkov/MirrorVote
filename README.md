@@ -29,6 +29,30 @@ npm run dev
 
 ## Настройка Supabase
 
+### 0. Установка Supabase CLI через npm
+
+Если `supabase` команда не найдена, установите CLI локально в проект:
+
+```bash
+npm install --save-dev supabase
+```
+
+Запускать CLI можно без глобальной установки:
+
+```bash
+npx supabase --version
+npx supabase login
+npx supabase db push
+npx supabase functions deploy normalize-photo
+npx supabase functions deploy analyze-outfits
+```
+
+Альтернатива для npm:
+
+```bash
+npm exec supabase -- --version
+```
+
 ### 1. Проект и переменные окружения
 
 1. Создайте проект на [supabase.com](https://supabase.com)
@@ -37,6 +61,8 @@ npm run dev
    VITE_SUPABASE_URL="https://ваш-проект.supabase.co"
    VITE_SUPABASE_PUBLISHABLE_KEY="eyJ..."
    ```
+   Допустимо также имя `VITE_SUPABASE_ANON_KEY` вместо `VITE_SUPABASE_PUBLISHABLE_KEY`.
+3. После изменения `.env` перезапустите `npm run dev`.
 
 ### 2. База данных
 
@@ -66,6 +92,10 @@ supabase db push
    ```
 2. Добавьте секрет в Dashboard → Edge Functions → Secrets:
    - `OPENROUTER_API_KEY` — ключ с [openrouter.ai](https://openrouter.ai)
+   - (опционально) `OPENROUTER_MODEL` — например `google/gemini-2.5-flash`
+3. Для функций `analyze-outfits` и `normalize-photo` в Dashboard → Edge Functions → Details выключите переключатель `Verify JWT with legacy secret` и сохраните изменения.
+   Это убирает конфликт legacy-режима с пользовательским JWT и предотвращает ошибку `401 Invalid JWT` при вызове функций из приложения.
+   После каждого redeploy функций перепроверьте этот переключатель и, если он снова включился, выключите его повторно.
 
 ### 5. Auth
 

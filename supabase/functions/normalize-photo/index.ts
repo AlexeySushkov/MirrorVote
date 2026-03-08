@@ -18,20 +18,14 @@ interface NormalizationResult {
   description: string
 }
 
+const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') ?? 'google/gemini-2.5-flash'
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
     const { photoUrl, allPhotoUrls }: NormalizeRequest = await req.json()
 
     if (!photoUrl || !allPhotoUrls?.length) {
@@ -82,7 +76,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-preview-05-20',
+        model: OPENROUTER_MODEL,
         messages: [{ role: 'user', content }],
         max_tokens: 500,
       }),

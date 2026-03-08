@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { isSupabaseConfigured, supabaseConfigError } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
 const signInSchema = z.object({
@@ -28,18 +29,6 @@ export function Auth() {
   const { user, loading, signIn, signUp, signInWithGoogle, signInAnonymously, resetPassword } = useAuth()
   const [mode, setMode] = useState<'signIn' | 'signUp' | 'forgot'>('signIn')
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">...</div>
-      </div>
-    )
-  }
-
-  if (user) {
-    return <Navigate to="/sessions" replace />
-  }
-
   const signInForm = useForm<SignInForm>({
     resolver: zodResolver(signInSchema),
     defaultValues: { email: '', password: '' },
@@ -54,7 +43,26 @@ export function Auth() {
     defaultValues: { email: '' },
   })
 
+  const ensureSupabaseConfigured = () => {
+    if (isSupabaseConfigured) return true
+    toast.error(supabaseConfigError)
+    return false
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">...</div>
+      </div>
+    )
+  }
+
+  if (user) {
+    return <Navigate to="/sessions" replace />
+  }
+
   const onSignIn = async (data: SignInForm) => {
+    if (!ensureSupabaseConfigured()) return
     try {
       await signIn(data.email, data.password)
     } catch (e) {
@@ -63,6 +71,7 @@ export function Auth() {
   }
 
   const onSignUp = async (data: SignUpForm) => {
+    if (!ensureSupabaseConfigured()) return
     try {
       await signUp(data.email, data.password)
       toast.success('Проверьте email для подтверждения')
@@ -72,6 +81,7 @@ export function Auth() {
   }
 
   const onForgot = async (data: { email: string }) => {
+    if (!ensureSupabaseConfigured()) return
     try {
       await resetPassword(data.email)
       toast.success('Письмо отправлено на email')
@@ -82,6 +92,7 @@ export function Auth() {
   }
 
   const onGoogle = async () => {
+    if (!ensureSupabaseConfigured()) return
     try {
       await signInWithGoogle()
     } catch (e) {
@@ -90,6 +101,7 @@ export function Auth() {
   }
 
   const onAnonymous = async () => {
+    if (!ensureSupabaseConfigured()) return
     try {
       await signInAnonymously()
     } catch (e) {
@@ -105,6 +117,10 @@ export function Auth() {
           <CardDescription>{t('app.tagline')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!isSupabaseConfigured && (
+            <p className="text-sm text-destructive">{supabaseConfigError}</p>
+          )}
+
           {mode === 'signIn' && (
             <>
               <form onSubmit={signInForm.handleSubmit(onSignIn)} className="space-y-4">
