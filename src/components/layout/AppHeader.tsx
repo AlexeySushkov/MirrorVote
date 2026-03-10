@@ -22,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { showErrorToast } from '@/utils/errorToast'
 
 export function AppHeader() {
   const { user, isAnonymous, signOut, linkAccount } = useAuth()
@@ -39,7 +40,7 @@ export function AppHeader() {
       toast.success(t('auth.signUp'))
       setLinkOpen(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error')
+      showErrorToast(err, 'Error', 'AppHeader.handleLink')
     } finally {
       setLinking(false)
     }

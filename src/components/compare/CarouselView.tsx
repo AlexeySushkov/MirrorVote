@@ -7,16 +7,19 @@ interface CarouselViewProps {
   photos: Photo[]
   showNormalized: boolean
   bestPhotoId?: string | null
+  onSlideChange?: (index: number) => void
 }
 
-export function CarouselView({ photos, showNormalized, bestPhotoId }: CarouselViewProps) {
+export function CarouselView({ photos, showNormalized, bestPhotoId, onSlideChange }: CarouselViewProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'center' })
   const [selectedIndex, setSelectedIndex] = useState(0)
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return
-    setSelectedIndex(emblaApi.selectedScrollSnap())
-  }, [emblaApi])
+    const idx = emblaApi.selectedScrollSnap()
+    setSelectedIndex(idx)
+    onSlideChange?.(idx)
+  }, [emblaApi, onSlideChange])
 
   useEffect(() => {
     if (!emblaApi) return
@@ -37,6 +40,8 @@ export function CarouselView({ photos, showNormalized, bestPhotoId }: CarouselVi
                 photo={photo}
                 showNormalized={showNormalized}
                 isBest={photo.id === bestPhotoId}
+                onPrev={() => emblaApi?.scrollPrev()}
+                onNext={() => emblaApi?.scrollNext()}
               />
             </div>
           ))}

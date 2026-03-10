@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { isSupabaseConfigured, supabaseConfigError } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
+import { showErrorToast } from '@/utils/errorToast'
 
 const signInSchema = z.object({
   email: z.string().email(),
@@ -45,7 +46,7 @@ export function Auth() {
 
   const ensureSupabaseConfigured = () => {
     if (isSupabaseConfigured) return true
-    toast.error(supabaseConfigError)
+    showErrorToast(supabaseConfigError, 'Ошибка конфигурации Supabase', 'Auth.ensureSupabaseConfigured')
     return false
   }
 
@@ -66,7 +67,7 @@ export function Auth() {
     try {
       await signIn(data.email, data.password)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка входа')
+      showErrorToast(e, 'Ошибка входа', 'Auth.onSignIn')
     }
   }
 
@@ -76,7 +77,7 @@ export function Auth() {
       await signUp(data.email, data.password)
       toast.success('Проверьте email для подтверждения')
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка регистрации')
+      showErrorToast(e, 'Ошибка регистрации', 'Auth.onSignUp')
     }
   }
 
@@ -87,7 +88,7 @@ export function Auth() {
       toast.success('Письмо отправлено на email')
       setMode('signIn')
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка')
+      showErrorToast(e, 'Ошибка', 'Auth.onForgot')
     }
   }
 
@@ -96,7 +97,7 @@ export function Auth() {
     try {
       await signInWithGoogle()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка')
+      showErrorToast(e, 'Ошибка', 'Auth.onGoogle')
     }
   }
 
@@ -105,7 +106,7 @@ export function Auth() {
     try {
       await signInAnonymously()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка')
+      showErrorToast(e, 'Ошибка', 'Auth.onAnonymous')
     }
   }
 

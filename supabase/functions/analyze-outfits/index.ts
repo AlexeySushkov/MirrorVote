@@ -4,6 +4,7 @@ import { corsHeaders } from '../_shared/cors.ts'
 interface AnalyzeRequest {
   photoUrls: string[]
   language: string
+  occasion?: string
 }
 
 const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') ?? 'google/gemini-2.5-flash'
@@ -14,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { photoUrls, language = 'ru' }: AnalyzeRequest = await req.json()
+    const { photoUrls, language = 'ru', occasion }: AnalyzeRequest = await req.json()
 
     if (!photoUrls?.length) {
       return new Response(
@@ -31,12 +32,16 @@ serve(async (req) => {
       )
     }
 
+    const occasionContext = occasion
+      ? `\n\nОценивай наряды С ТОЧКИ ЗРЕНИЯ конкретного случая: "${occasion}". Все оценки, плюсы, минусы, советы и рекомендации должны учитывать именно этот контекст. Для каждого фото дай текстовую рекомендацию, подходит ли этот наряд для "${occasion}" и почему.`
+      : ''
+
     const content: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
       {
         type: 'text',
-        text: `Ты — профессиональный стилист и fashion-консультант. Тебе показаны ${photoUrls.length} фотографий человека в разных нарядах из примерочной.
+        text: `Ты — профессиональный стилист и fashion-консультант. Тебе показаны ${photoUrls.length} фотографий человека в разных нарядах из примерочной.${occasionContext}
 
-Для КАЖДОГО фото (пронумеруй по порядку 0, 1, 2...) верни оценку. Затем дай общую рекомендацию.
+Для КАЖДОГО фото (пронумеруй по порядку 0, 1, 2...) верни оценку и текстовую рекомендацию. Затем дай общую рекомендацию.
 
 Верни СТРОГО только валидный JSON без markdown:
 {
@@ -48,13 +53,14 @@ serve(async (req) => {
       "style_score": <1-10, стиль и актуальность>,
       "color_score": <1-10, цветовое сочетание>,
       "description": "<что за наряд, 1-2 предложения>",
+      "verdict": "<текстовая рекомендация для этого фото: подходит ли наряд${occasion ? ' для ' + occasion : ''}, почему, что можно улучшить, 2-4 предложения>",
       "pros": ["<плюс 1>", "<плюс 2>"],
       "cons": ["<минус 1>", "<минус 2>"],
       "style_tips": ["<совет 1>", "<совет 2>"]
     }
   ],
   "best_index": <индекс лучшего фото, 0-based>,
-  "recommendation": "<общая рекомендация, 2-4 предложения, какой наряд лучше и почему>",
+  "recommendation": "<общая рекомендация, 2-4 предложения, какой наряд лучше и почему${occasion ? ' для ' + occasion : ''}>",
   "comparison": "<краткое сравнение нарядов между собой>"
 }
 
@@ -75,7 +81,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: OPENROUTER_MODEL,
         messages: [{ role: 'user', content }],
-        max_tokens: 2000,
+        max_tokens: 3000,
       }),
     })
 

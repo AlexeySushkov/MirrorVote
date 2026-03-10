@@ -1,9 +1,14 @@
 import { supabase } from '@/integrations/supabase/client'
-import type { NormalizationParams } from '@/integrations/supabase/types'
 import { toFunctionError } from '@/utils/supabaseFunctionError'
 
 export function usePhotoNormalization() {
-  async function normalizePhoto(photoId: string, photoUrl: string, allPhotoUrls: string[]): Promise<NormalizationParams> {
+  async function normalizePhoto(
+    photoId: string,
+    photoUrl: string,
+    allPhotoUrls: string[],
+    userId: string,
+    sessionId: string
+  ): Promise<{ processedPhotoUrl: string }> {
     const { data: { session } } = await supabase.auth.getSession()
     let token = session?.access_token
     if (!token) {
@@ -22,15 +27,21 @@ export function usePhotoNormalization() {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: { photoUrl, allPhotoUrls },
+      body: { photoUrl, allPhotoUrls, photoId, userId, sessionId },
     })
 
     if (error) throw await toFunctionError(error)
     if (data?.error) throw new Error(data.error)
 
-    const normalization = data?.normalization ?? {}
-    await supabase.from('mirror_photos').update({ normalization, status: 'ready' } as never).eq('id', photoId)
-    return normalization
+    const processedPhotoUrl = data?.processedPhotoUrl
+    if (!processedPhotoUrl) throw new Error('No processed photo URL returned')
+
+    await supabase
+      .from('mirror_photos')
+      .update({ processed_photo_url: processedPhotoUrl, status: 'ready' } as never)
+      .eq('id', photoId)
+
+    return { processedPhotoUrl }
   }
 
   return { normalizePhoto }

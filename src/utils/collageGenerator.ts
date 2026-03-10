@@ -36,7 +36,7 @@ export async function generateCollage(photos: Photo[], bestPhotoId?: string | nu
     const y = padding + row * (cellHeight + badgeHeight + padding)
 
     try {
-      const img = await loadImage(photo.photo_url)
+      const img = await loadImage(photo.processed_photo_url ?? photo.photo_url)
       ctx.drawImage(img, x, y, cellWidth, cellHeight)
 
       const isBest = photo.id === bestPhotoId

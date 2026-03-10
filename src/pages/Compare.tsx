@@ -1,47 +1,134 @@
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Loader2, PlusCircle, List, ImagePlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { SideBySide } from '@/components/compare/SideBySide'
 import { CarouselView } from '@/components/compare/CarouselView'
-import { OverlayView } from '@/components/compare/OverlayView'
+import { PickBestView } from '@/components/compare/PickBestView'
 import { CompareToolbar } from '@/components/compare/CompareToolbar'
-import { AIRecommendation } from '@/components/analysis/AIRecommendation'
-import { OutfitScore } from '@/components/analysis/OutfitScore'
+import { InlineVerdict } from '@/components/analysis/InlineVerdict'
+import { OccasionPicker } from '@/components/analysis/OccasionPicker'
 import { CollageExport } from '@/components/share/CollageExport'
-import { useSession, usePhotos, useUpdateSession } from '@/hooks/usePhotoSession'
+import { Progress } from '@/components/ui/progress'
+import { useSession, usePhotos, useUpdateSession, useUploadPhoto, MAX_PHOTOS } from '@/hooks/usePhotoSession'
 import { supabase } from '@/integrations/supabase/client'
 import { useOutfitAnalysis } from '@/hooks/useOutfitAnalysis'
+import { usePhotoNormalization } from '@/hooks/usePhotoNormalization'
 import { useCompareMode } from '@/hooks/useCompareMode'
+import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { toast } from 'sonner'
+import { showErrorToast } from '@/utils/errorToast'
+import type { Photo } from '@/integrations/supabase/types'
 
 export function Compare() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { t } = useLanguage()
-  const { viewMode, setViewMode, showNormalized, toggleNormalized, overlayOpacity, setOverlayOpacity, sideBySideIndex, setSideBySideIndex } = useCompareMode()
+  const { viewMode, setViewMode, showNormalized, toggleNormalized, sideBySideIndex, setSideBySideIndex } = useCompareMode()
 
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
   const { data: session, isLoading: sessionLoading } = useSession(id)
   const { data: photos, isLoading: photosLoading } = usePhotos(id)
   const updateSession = useUpdateSession(id)
   const { analyzeOutfits } = useOutfitAnalysis()
+  const { normalizePhoto } = usePhotoNormalization()
+  const uploadPhoto = useUploadPhoto(user?.id, id)
 
   const [analyzing, setAnalyzing] = useState(false)
+  const [occasionOpen, setOccasionOpen] = useState(false)
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
+  const [normalizing, setNormalizing] = useState(false)
+  const [normalizeProgress, setNormalizeProgress] = useState(0)
 
   const photosList = photos ?? []
   const isLoading = sessionLoading || photosLoading
+  const hasAtLeastOnePhoto = photosList.length >= 1
+  const hasPhotoPair = photosList.length >= 2
 
-  async function handleAnalyze() {
-    if (photosList.length < 2) {
-      toast.error('Нужно минимум 2 фото')
+  const currentPhoto: Photo | undefined =
+    viewMode === 'pick-best' ? undefined : photosList[currentPhotoIndex]
+  const [pickBestPhoto, setPickBestPhoto] = useState<Photo | undefined>()
+  const activePhoto = viewMode === 'pick-best' ? pickBestPhoto : currentPhoto
+
+  useEffect(() => {
+    if (!hasPhotoPair && viewMode === 'pick-best') {
+      setViewMode('carousel')
+    }
+  }, [hasPhotoPair, viewMode, setViewMode])
+
+  useEffect(() => {
+    if (viewMode === 'carousel') {
+      setCurrentPhotoIndex(sideBySideIndex)
+    }
+  }, [sideBySideIndex, viewMode])
+
+  const handleCarouselSlide = useCallback((idx: number) => {
+    setCurrentPhotoIndex(idx)
+  }, [])
+
+  const handlePickBestPhoto = useCallback((photo: Photo) => {
+    setPickBestPhoto(photo)
+  }, [])
+
+  const addPhotoRef = useRef<HTMLInputElement>(null)
+  const canAddMore = photosList.length < MAX_PHOTOS
+  const allHaveProcessed = photosList.length > 0 && photosList.every((p) => p.processed_photo_url)
+
+  async function handleAddPhotos(files: FileList | null) {
+    if (!files?.length || !id) return
+    const remaining = MAX_PHOTOS - photosList.length
+    const toUpload = Array.from(files).slice(0, remaining)
+    for (const f of toUpload) {
+      try {
+        await uploadPhoto.mutateAsync(f)
+      } catch (err) {
+        console.error('Upload failed for', f.name, err)
+      }
+    }
+    await queryClient.refetchQueries({ queryKey: ['photos', id] })
+  }
+
+  async function handleClearLook() {
+    if (!user || !id || photosList.length === 0) return
+    if (allHaveProcessed) {
+      toggleNormalized()
+      return
+    }
+    setNormalizing(true)
+    setNormalizeProgress(0)
+    try {
+      const urls = photosList.map((p) => p.photo_url)
+      const needProcessing = photosList.filter((p) => !p.processed_photo_url)
+      for (let i = 0; i < needProcessing.length; i++) {
+        const p = needProcessing[i]
+        await normalizePhoto(p.id, p.photo_url, urls, user.id, id)
+        setNormalizeProgress(((i + 1) / needProcessing.length) * 100)
+      }
+      await queryClient.refetchQueries({ queryKey: ['photos', id] })
+      if (!showNormalized) toggleNormalized()
+      toast.success(t('upload.clearLookDone'))
+    } catch (e) {
+      showErrorToast(e, 'Simple Look (AI) error', 'Compare.handleClearLook')
+    } finally {
+      setNormalizing(false)
+      setNormalizeProgress(0)
+    }
+  }
+
+  async function handleAnalyze(occasion: string) {
+    if (!hasAtLeastOnePhoto) {
+      showErrorToast('Нужно минимум 1 фото', 'Нужно минимум 1 фото', 'Compare.handleAnalyze.validation')
       return
     }
     setAnalyzing(true)
     try {
+      const lang = t('app.title').includes('Mirror') ? 'ru' : 'en'
       const result = await analyzeOutfits(
-        photosList.map((p) => p.photo_url),
-        t('app.title').includes('Mirror') ? 'ru' : 'en'
+        photosList.map((p) => p.processed_photo_url ?? p.photo_url),
+        lang,
+        occasion
       )
       await updateSession.mutateAsync({
         status: 'analyzed',
@@ -60,6 +147,7 @@ export function Compare() {
                 style_score: a.style_score,
                 color_score: a.color_score,
                 description: a.description,
+                verdict: a.verdict ?? '',
                 pros: a.pros ?? [],
                 cons: a.cons ?? [],
                 style_tips: a.style_tips ?? [],
@@ -68,9 +156,11 @@ export function Compare() {
             .eq('id', photosList[i].id)
         }
       }
+      await queryClient.refetchQueries({ queryKey: ['photos', id] })
+      await queryClient.refetchQueries({ queryKey: ['session', id] })
       toast.success('Анализ завершён')
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка анализа')
+      showErrorToast(e, 'Ошибка анализа', 'Compare.handleAnalyze')
     } finally {
       setAnalyzing(false)
     }
@@ -86,54 +176,88 @@ export function Compare() {
 
   return (
     <div className="container max-w-4xl mx-auto px-4 py-8">
+      <input
+        ref={addPhotoRef}
+        type="file"
+        accept="image/jpeg,image/png,image/heic"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          handleAddPhotos(e.target.files)
+          e.target.value = ''
+        }}
+      />
       <div className="space-y-6">
         <CompareToolbar
           viewMode={viewMode}
           onViewModeChange={setViewMode}
-          showNormalized={showNormalized}
-          onToggleNormalized={toggleNormalized}
+          canComparePair={hasPhotoPair}
         />
 
-        {photosList.length >= 2 && (
+        {hasAtLeastOnePhoto && (
           <>
-            {viewMode === 'side-by-side' && (
-              <SideBySide
-                photos={photosList}
-                showNormalized={showNormalized}
-                bestPhotoId={session.best_photo_id}
-                leftIndex={sideBySideIndex}
-                onLeftIndexChange={setSideBySideIndex}
-              />
-            )}
-            {viewMode === 'carousel' && (
+            {viewMode === 'carousel' && hasAtLeastOnePhoto && (
               <CarouselView
                 photos={photosList}
                 showNormalized={showNormalized}
                 bestPhotoId={session.best_photo_id}
+                onSlideChange={handleCarouselSlide}
               />
             )}
-            {viewMode === 'overlay' && (
-              <OverlayView
+            {viewMode === 'pick-best' && hasPhotoPair && (
+              <PickBestView
                 photos={photosList}
                 showNormalized={showNormalized}
                 bestPhotoId={session.best_photo_id}
-                opacity={overlayOpacity}
-                onOpacityChange={setOverlayOpacity}
-                leftIndex={sideBySideIndex}
-                rightIndex={(sideBySideIndex + 1) % photosList.length}
+                onCurrentPhotoChange={handlePickBestPhoto}
               />
             )}
           </>
         )}
 
-        {photosList.length < 2 && (
+        {session.status === 'analyzed' && activePhoto?.analysis && (
+          <InlineVerdict analysis={activePhoto.analysis} />
+        )}
+
+        {!hasAtLeastOnePhoto && (
           <p className="text-muted-foreground text-center py-8">
-            Загрузите минимум 2 фото для сравнения
+            Загрузите минимум 1 фото для анализа
           </p>
         )}
 
-        <div className="flex gap-2">
-          <Button onClick={handleAnalyze} disabled={analyzing || photosList.length < 2}>
+        {normalizing && (
+          <div className="space-y-1">
+            <Progress value={normalizeProgress} />
+            <p className="text-xs text-muted-foreground text-center">
+              Simple Look — {Math.round(normalizeProgress)}%
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => navigate('/sessions')}>
+            <List className="mr-2 h-4 w-4" />
+            {t('nav.sessions')}
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/sessions/new')}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            {t('sessions.new')}
+          </Button>
+          {canAddMore && (
+            <Button
+              variant="outline"
+              onClick={() => addPhotoRef.current?.click()}
+              disabled={uploadPhoto.isPending}
+            >
+              {uploadPhoto.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <ImagePlus className="mr-2 h-4 w-4" />
+              )}
+              {t('upload.addMore')}
+            </Button>
+          )}
+          <Button variant="destructive" onClick={() => setOccasionOpen(true)} disabled={analyzing || !hasAtLeastOnePhoto}>
             {analyzing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -143,34 +267,30 @@ export function Compare() {
               t('compare.analyze')
             )}
           </Button>
-          {photosList.length >= 2 && (
+          <OccasionPicker
+            open={occasionOpen}
+            onOpenChange={setOccasionOpen}
+            onSelect={handleAnalyze}
+            disabled={analyzing}
+          />
+          <Button
+            variant="destructive"
+            onClick={handleClearLook}
+            disabled={normalizing}
+          >
+            {normalizing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Simple Look (AI)...
+              </>
+            ) : (
+              showNormalized && allHaveProcessed ? t('compare.original') : t('compare.normalized')
+            )}
+          </Button>
+          {hasPhotoPair && (
             <CollageExport photos={photosList} bestPhotoId={session.best_photo_id} />
           )}
         </div>
-
-        {session.status === 'analyzed' && session.ai_recommendation && (
-          <AIRecommendation recommendation={session.ai_recommendation} />
-        )}
-
-        {session.status === 'analyzed' && photosList.some((p) => p.analysis) && (
-          <Card>
-            <CardHeader>
-              <h2 className="font-serif text-lg">{t('analysis.score')}</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {photosList.map((photo) => (
-                  <div key={photo.id} className="text-center">
-                    <OutfitScore
-                      score={photo.analysis?.overall_score ?? 0}
-                      label={photo.original_filename}
-                    />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   )

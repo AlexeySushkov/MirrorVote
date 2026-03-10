@@ -3,15 +3,19 @@ import { ru } from 'date-fns/locale'
 import { ChevronRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import type { Session } from '@/integrations/supabase/types'
 import { usePhotos } from '@/hooks/usePhotoSession'
 
 interface SessionCardProps {
   session: Session
   onClick: () => void
+  selectable?: boolean
+  selected?: boolean
+  onSelectChange?: (checked: boolean) => void
 }
 
-export function SessionCard({ session, onClick }: SessionCardProps) {
+export function SessionCard({ session, onClick, selectable, selected, onSelectChange }: SessionCardProps) {
   const { data: photos } = usePhotos(session.id)
 
   return (
@@ -19,7 +23,15 @@ export function SessionCard({ session, onClick }: SessionCardProps) {
       className="cursor-pointer hover:shadow-md transition-shadow"
       onClick={onClick}
     >
-      <CardContent className="p-4 flex gap-4">
+      <CardContent className="p-4 flex gap-4 items-center">
+        {selectable && (
+          <Checkbox
+            checked={selected}
+            onCheckedChange={(v) => onSelectChange?.(v === true)}
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0"
+          />
+        )}
         <div className="flex gap-2 overflow-x-auto flex-1 min-w-0">
           {photos?.slice(0, 3).map((p) => (
             <div

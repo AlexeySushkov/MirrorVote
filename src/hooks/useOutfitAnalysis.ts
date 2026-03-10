@@ -12,7 +12,8 @@ export interface AnalysisResult {
 export function useOutfitAnalysis() {
   async function analyzeOutfits(
     photoUrls: string[],
-    language: string = 'ru'
+    language: string = 'ru',
+    occasion?: string
   ): Promise<AnalysisResult> {
     const { data: { session } } = await supabase.auth.getSession()
     let token = session?.access_token
@@ -32,7 +33,7 @@ export function useOutfitAnalysis() {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: { photoUrls, language },
+      body: { photoUrls, language, occasion },
     })
 
     if (error) throw await toFunctionError(error)

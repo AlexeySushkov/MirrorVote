@@ -74,7 +74,14 @@ export function App() {
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </div>
-              <Toaster />
+              <Toaster
+                richColors
+                closeButton
+                duration={15000}
+                toastOptions={{
+                  className: 'text-left',
+                }}
+              />
             </BrowserRouter>
           </TooltipProvider>
         </AuthProvider>

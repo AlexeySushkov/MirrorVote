@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { Camera, Upload } from 'lucide-react'
+import { Camera, ImagePlus, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { MAX_PHOTOS } from '@/utils/constants'
@@ -77,16 +77,26 @@ export function PhotoUploader({ onFilesSelected, currentCount, disabled }: Photo
           {t('upload.minPhotos')} — {t('upload.maxPhotos')}
         </p>
       </label>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="mt-4"
-        onClick={() => document.getElementById('photo-capture')?.click()}
-      >
-        <Camera className="mr-2 h-4 w-4" />
-        {t('upload.camera')}
-      </Button>
+      <div className="mt-4 flex justify-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => document.getElementById('photo-capture')?.click()}
+        >
+          <Camera className="mr-2 h-4 w-4" />
+          {t('upload.camera')}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => document.getElementById('photo-upload')?.click()}
+        >
+          <ImagePlus className="mr-2 h-4 w-4" />
+          {t('upload.gallery')}
+        </Button>
+      </div>
     </div>
   )
 }

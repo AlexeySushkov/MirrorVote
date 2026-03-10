@@ -24,6 +24,7 @@ export interface PhotoAnalysis {
   style_score: number
   color_score: number
   description: string
+  verdict?: string
   pros: string[]
   cons: string[]
   style_tips: string[]
@@ -74,6 +75,7 @@ export interface Database {
           user_id: string
           storage_path: string
           photo_url: string
+          processed_photo_url: string | null
           original_filename: string
           sort_order: number
           normalization: NormalizationParams | null
@@ -88,6 +90,7 @@ export interface Database {
           user_id: string
           storage_path: string
           photo_url: string
+          processed_photo_url?: string | null
           original_filename: string
           sort_order?: number
           normalization?: NormalizationParams | null
@@ -102,6 +105,7 @@ export interface Database {
           user_id?: string
           storage_path?: string
           photo_url?: string
+          processed_photo_url?: string | null
           original_filename?: string
           sort_order?: number
           normalization?: NormalizationParams | null

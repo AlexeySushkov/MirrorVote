@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
+import { Loader2, List } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { usePhotoNormalization } from '@/hooks/usePhotoNormalization'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { toast } from 'sonner'
+import { showErrorToast } from '@/utils/errorToast'
 
 export function NewSession() {
   const { user } = useAuth()
@@ -28,6 +29,7 @@ export function NewSession() {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [normalizing, setNormalizing] = useState(false)
   const [normalizeProgress, setNormalizeProgress] = useState(0)
+  const creatingRef = useRef(false)
 
   const createSession = useCreateSession(user?.id)
   const uploadPhoto = useUploadPhoto(user?.id, sessionId || undefined)
@@ -38,25 +40,28 @@ export function NewSession() {
   const { data: photos } = usePhotos(sessionId ?? undefined)
   const photosList = photos ?? []
 
-  useEffect(() => {
-    if (user && !sessionId && !createSession.isPending) {
-      createSession.mutateAsync(undefined)
-        .then((s) => setSessionId(s.id))
-        .catch((err) => {
-          console.error('Session creation failed:', err)
-          toast.error('Не удалось создать сессию')
-        })
+  const ensureSession = useCallback(async (): Promise<string | null> => {
+    if (sessionId) return sessionId
+    if (creatingRef.current) return null
+    creatingRef.current = true
+    try {
+      const s = await createSession.mutateAsync(undefined)
+      setSessionId(s.id)
+      return s.id
+    } catch (err) {
+      showErrorToast(err, 'Не удалось создать сессию', 'NewSession.ensureSession')
+      return null
+    } finally {
+      creatingRef.current = false
     }
-  }, [user])
+  }, [sessionId, createSession])
 
   async function handleFiles(files: File[]) {
-    if (!sessionId) {
-      toast.error('Сессия не создана, обновите страницу')
-      return
-    }
+    const sid = await ensureSession()
+    if (!sid) return
     for (const f of files) {
       try {
-        await uploadPhoto.mutateAsync(f)
+        await uploadPhoto.mutateAsync({ file: f, overrideSessionId: sid })
       } catch (err) {
         console.error('Upload failed for', f.name, err)
       }
@@ -64,8 +69,8 @@ export function NewSession() {
   }
 
   async function handleNormalize() {
-    if (!sessionId || photosList.length < MIN_PHOTOS) {
-      toast.error(`Нужно минимум ${MIN_PHOTOS} фото`)
+    if (!user || !sessionId || photosList.length < MIN_PHOTOS) {
+      showErrorToast(`Нужно минимум ${MIN_PHOTOS} фото`, `Нужно минимум ${MIN_PHOTOS} фото`, 'NewSession.handleNormalize.validation')
       return
     }
     setNormalizing(true)
@@ -74,30 +79,28 @@ export function NewSession() {
       await updateSession.mutateAsync({ status: 'normalizing' as const } as never)
       for (let i = 0; i < photosList.length; i++) {
         await supabase.from('mirror_photos').update({ status: 'normalizing' }).eq('id', photosList[i].id)
-        await normalizePhoto(photosList[i].id, photosList[i].photo_url, urls)
+        await normalizePhoto(photosList[i].id, photosList[i].photo_url, urls, user.id, sessionId)
         setNormalizeProgress(((i + 1) / photosList.length) * 100)
       }
       await updateSession.mutateAsync({ status: 'ready' })
-      toast.success('Фото выровнены')
+      toast.success(t('upload.clearLookDone'))
       navigate(`/sessions/${sessionId}`)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка нормализации')
+      showErrorToast(e, 'Ошибка нормализации', 'NewSession.handleNormalize')
     } finally {
       setNormalizing(false)
       setNormalizeProgress(0)
     }
   }
 
-  if (!sessionId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Создание сессии...</div>
-      </div>
-    )
-  }
-
   return (
     <div className="container max-w-2xl mx-auto px-4 py-8">
+      <div className="mb-4">
+        <Button variant="outline" size="sm" onClick={() => navigate('/sessions')}>
+          <List className="mr-2 h-4 w-4" />
+          {t('nav.sessions')}
+        </Button>
+      </div>
       <Card>
         <CardHeader>
           <h1 className="font-serif text-2xl">{t('upload.title')}</h1>
@@ -122,24 +125,9 @@ export function NewSession() {
                 </div>
               )}
               {!normalizing && photosList.length >= MIN_PHOTOS && (
-                <div className="flex gap-2">
-                  <Button onClick={handleNormalize} disabled={normalizing}>
-                    {normalizing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {t('upload.progress')}
-                      </>
-                    ) : (
-                      t('upload.normalize')
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate(`/sessions/${sessionId}`)}
-                  >
-                    {t('upload.continue')}
-                  </Button>
-                </div>
+                <Button onClick={() => navigate(`/sessions/${sessionId}`)}>
+                  {t('upload.continue')}
+                </Button>
               )}
             </>
           )}

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import type { Session, Photo } from '@/integrations/supabase/types'
 import { resizeImage } from '@/utils/imageUtils'
 import { MAX_FILE_SIZE, ACCEPTED_FORMATS } from '@/utils/constants'
-import { toast } from 'sonner'
+import { showErrorToast } from '@/utils/errorToast'
 
 export function useSessions(userId: string | undefined) {
   return useQuery({
@@ -74,8 +74,10 @@ export function useUploadPhoto(userId: string | undefined, sessionId: string | u
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (file: File) => {
-      if (!userId || !sessionId) throw new Error('Not authenticated')
+    mutationFn: async (input: File | { file: File; overrideSessionId: string }) => {
+      const file = input instanceof File ? input : input.file
+      const sid = input instanceof File ? sessionId : input.overrideSessionId
+      if (!userId || !sid) throw new Error('Not authenticated')
       if (!ACCEPTED_FORMATS.includes(file.type) && !file.type.includes('heic')) {
         throw new Error('Invalid format. Use JPG, PNG or HEIC')
       }
@@ -85,7 +87,7 @@ export function useUploadPhoto(userId: string | undefined, sessionId: string | u
       const blob = resized instanceof Blob ? resized : new Blob([resized])
       const ext = file.name.split('.').pop() ?? 'jpg'
       const photoId = crypto.randomUUID()
-      const filePath = `${userId}/${sessionId}/${photoId}.${ext}`
+      const filePath = `${userId}/${sid}/${photoId}.${ext}`
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('mirror_photos')
@@ -104,7 +106,7 @@ export function useUploadPhoto(userId: string | undefined, sessionId: string | u
       const { data: photo, error } = await supabase
         .from('mirror_photos')
         .insert({
-          session_id: sessionId,
+          session_id: sid,
           user_id: userId,
           storage_path: filePath,
           photo_url: urlData.publicUrl,
@@ -125,7 +127,7 @@ export function useUploadPhoto(userId: string | undefined, sessionId: string | u
       queryClient.invalidateQueries({ queryKey: ['photos', sessionId] })
       queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : 'Upload failed'),
+    onError: (err) => showErrorToast(err, 'Upload failed', 'useUploadPhoto.onError'),
   })
 }
 
@@ -140,6 +142,23 @@ export function useDeletePhoto(sessionId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['photos', sessionId] })
       queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
+    },
+  })
+}
+
+export function useDeleteSessions(userId: string | undefined) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (sessionIds: string[]) => {
+      const { error } = await supabase
+        .from('mirror_sessions')
+        .delete()
+        .in('id', sessionIds)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions', userId] })
     },
   })
 }

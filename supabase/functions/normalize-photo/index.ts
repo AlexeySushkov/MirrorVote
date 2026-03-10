@@ -1,24 +1,19 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 
 interface NormalizeRequest {
   photoUrl: string
   allPhotoUrls: string[]
+  photoId: string
+  userId: string
+  sessionId: string
 }
 
-interface NormalizationResult {
-  brightness: number
-  contrast: number
-  warmth: number
-  cropTop: number
-  cropBottom: number
-  cropLeft: number
-  cropRight: number
-  scale: number
-  description: string
-}
+const PROMPT_VERSION = 'v4-clear-look-openrouter'
+const CLEAR_LOOK_PROMPT = `Professional product photo. Keep face and expression unchanged. Clean plain background. Studio lighting, even and neutral. Person fills the frame. Remove phone if visible. Pose: one arm down, one hand on hip, feet shoulder-width apart. Preserve identity, clothing, colors and fabric texture. No extra accessories.`
 
-const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') ?? 'google/gemini-2.5-flash'
+const OPENROUTER_IMAGE_MODEL = Deno.env.get('OPENROUTER_IMAGE_MODEL') ?? Deno.env.get('OPENROUTER_MODEL') ?? 'google/gemini-2.5-flash-image'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -26,11 +21,11 @@ serve(async (req) => {
   }
 
   try {
-    const { photoUrl, allPhotoUrls }: NormalizeRequest = await req.json()
+    const { photoUrl, allPhotoUrls, photoId, userId, sessionId }: NormalizeRequest = await req.json()
 
-    if (!photoUrl || !allPhotoUrls?.length) {
+    if (!photoUrl || !allPhotoUrls?.length || !photoId || !userId || !sessionId) {
       return new Response(
-        JSON.stringify({ error: 'photoUrl and allPhotoUrls required' }),
+        JSON.stringify({ error: 'photoUrl, allPhotoUrls, photoId, userId, sessionId required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -38,30 +33,26 @@ serve(async (req) => {
     const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY')
     if (!OPENROUTER_API_KEY) {
       return new Response(
-        JSON.stringify({ error: 'OpenRouter API key not configured' }),
+        JSON.stringify({ error: 'OPENROUTER_API_KEY not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({ error: 'Supabase config missing' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
     const content: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
       {
         type: 'text',
-        text: `Проанализируй это фото из примерочной (индекс ${allPhotoUrls.indexOf(photoUrl) + 1} из ${allPhotoUrls.length}). 
-Остальные фото серии: ${allPhotoUrls.length - 1} шт. 
-Верни JSON с параметрами нормализации, чтобы все фото серии выглядели одинаково по свету и масштабу.
-
-Верни ТОЛЬКО валидный JSON без markdown:
-{
-  "brightness": <число 0.5–1.5, 1.0 = без изменений>,
-  "contrast": <число 0.5–1.5, 1.0 = без изменений>,
-  "warmth": <число -20..+20, 0 = без изменений, CSS hue-rotate в градусах>,
-  "cropTop": <% обрезки сверху, 0–15>,
-  "cropBottom": <% обрезки снизу, 0–15>,
-  "cropLeft": <% обрезки слева, 0–15>,
-  "cropRight": <% обрезки справа, 0–15>,
-  "scale": <масштаб 0.8–1.2, 1.0 = без изменений>,
-  "description": "<краткое описание: поза, освещение, расстояние до зеркала>"
-}`,
+        text: `Edit this fitting room photo. ${CLEAR_LOOK_PROMPT}`,
       },
       {
         type: 'image_url',
@@ -76,9 +67,10 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: OPENROUTER_MODEL,
+        model: OPENROUTER_IMAGE_MODEL,
         messages: [{ role: 'user', content }],
-        max_tokens: 500,
+        modalities: ['image', 'text'],
+        max_tokens: 4096,
       }),
     })
 
@@ -88,24 +80,52 @@ serve(async (req) => {
       throw new Error(data.error.message ?? 'OpenRouter API error')
     }
 
-    const text = data.choices?.[0]?.message?.content ?? ''
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
-    const normalization: NormalizationResult = jsonMatch
-      ? JSON.parse(jsonMatch[0])
-      : {
-          brightness: 1,
-          contrast: 1,
-          warmth: 0,
-          cropTop: 0,
-          cropBottom: 0,
-          cropLeft: 0,
-          cropRight: 0,
-          scale: 1,
-          description: '',
-        }
+    const message = data.choices?.[0]?.message
+    const images = message?.images ?? message?.image_url
+    if (!images?.length) {
+      throw new Error('OpenRouter returned no image')
+    }
+
+    const firstImage = images[0]
+    const imageUrl = firstImage?.image_url?.url ?? firstImage?.url
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      throw new Error('OpenRouter returned invalid image format')
+    }
+
+    let imgBytes: ArrayBuffer
+    if (imageUrl.startsWith('data:')) {
+      const base64 = imageUrl.split(',')[1]
+      if (!base64) throw new Error('Invalid base64 image')
+      const binary = atob(base64)
+      const arr = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i)
+      imgBytes = arr.buffer
+    } else {
+      const imgRes = await fetch(imageUrl)
+      if (!imgRes.ok) throw new Error('Failed to download generated image')
+      imgBytes = await imgRes.arrayBuffer()
+    }
+
+    const ext = 'jpg'
+    const storagePath = `${userId}/${sessionId}/${photoId}_processed.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('mirror_photos')
+      .upload(storagePath, imgBytes, {
+        contentType: 'image/jpeg',
+        upsert: true,
+      })
+
+    if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`)
+
+    const { data: urlData } = supabase.storage.from('mirror_photos').getPublicUrl(storagePath)
+    const processedPhotoUrl = urlData.publicUrl
 
     return new Response(
-      JSON.stringify({ normalization }),
+      JSON.stringify({
+        processedPhotoUrl,
+        promptVersion: PROMPT_VERSION,
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
