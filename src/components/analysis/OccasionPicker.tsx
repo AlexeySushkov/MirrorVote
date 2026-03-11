@@ -83,6 +83,14 @@ export function OccasionPicker({ open, onOpenChange, onSelect, disabled }: Occas
             {t('compare.startAnalysis')}
           </Button>
         </div>
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={disabled}
+          onClick={() => onOpenChange(false)}
+        >
+          {t('compare.cancel')}
+        </Button>
       </DialogContent>
     </Dialog>
   )

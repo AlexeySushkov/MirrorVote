@@ -25,6 +25,7 @@ export function PhotoCard({ photo, showNormalized, isBest, className, onPrev, on
     <div className={cn('relative rounded-xl overflow-hidden bg-muted group', className)}>
       <div className="aspect-[3/4] relative">
         <img
+          key={imgUrl}
           src={imgUrl}
           alt={photo.original_filename}
           className="w-full h-full object-cover object-center"

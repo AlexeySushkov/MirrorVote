@@ -23,14 +23,7 @@ export function PhotoVerdict({ filename, photoUrl, analysis }: PhotoVerdictProps
             className="w-24 h-32 object-cover rounded-md flex-shrink-0"
           />
           <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-3">
-              <OutfitScore score={analysis.overall_score} size="sm" />
-              <div className="flex gap-2 text-xs text-muted-foreground">
-                <span>Fit {analysis.fit_score}</span>
-                <span>Style {analysis.style_score}</span>
-                <span>Color {analysis.color_score}</span>
-              </div>
-            </div>
+            <OutfitScore score={analysis.overall_score} size="sm" />
             {analysis.verdict && (
               <p className="text-sm leading-relaxed">{analysis.verdict}</p>
             )}

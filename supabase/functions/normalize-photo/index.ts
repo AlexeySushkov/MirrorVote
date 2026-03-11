@@ -8,12 +8,41 @@ interface NormalizeRequest {
   photoId: string
   userId: string
   sessionId: string
+  background?: string
+  storagePath?: string
 }
 
-const PROMPT_VERSION = 'v4-clear-look-openrouter'
-const CLEAR_LOOK_PROMPT = `Professional product photo. Keep face and expression unchanged. Clean plain background. Studio lighting, even and neutral. Person fills the frame. Remove phone if visible. Pose: one arm down, one hand on hip, feet shoulder-width apart. Preserve identity, clothing, colors and fabric texture. No extra accessories.`
+const PROMPT_VERSION = 'v5-background-picker'
 
-const OPENROUTER_IMAGE_MODEL = Deno.env.get('OPENROUTER_IMAGE_MODEL') ?? Deno.env.get('OPENROUTER_MODEL') ?? 'google/gemini-2.5-flash-image'
+function buildBackgroundPrompt(background: string): string {
+  const lower = background.toLowerCase()
+  if (lower.includes('neutral') || lower.includes('нейтральн')) {
+    return 'Clean plain neutral background (white, light gray, or soft gradient).'
+  }
+  if (lower.includes('office') || lower.includes('офис')) {
+    return 'Professional office background: subtle office interior, blurred, neutral tones.'
+  }
+  if (lower.includes('date') || lower.includes('свидан')) {
+    return 'Romantic date setting: soft, warm background, restaurant or cozy interior vibe.'
+  }
+  if (lower.includes('party') || lower.includes('вечеринк')) {
+    return 'Party or venue background: festive, dynamic atmosphere, blurred lights or venue setting.'
+  }
+  if (lower.includes('casual') || lower.includes('повседневн')) {
+    return 'Casual relaxed background: natural, everyday setting, soft and unobtrusive.'
+  }
+  return `Background: ${background}.`
+}
+
+const BASE_PROMPT = `Professional fitting room photo edit. Keep face and expression unchanged. Studio lighting, even and flattering. Person fills the frame. Remove phone if visible. Pose: one arm down, one hand on hip, feet shoulder-width apart. Preserve identity, clothing, colors and fabric texture. No extra accessories.`
+
+// Must use an image-capable model (e.g. gemini-2.5-flash-image). Do NOT fall back to OPENROUTER_MODEL
+// (gemini-2.5-flash) — it does not support image output and causes "No endpoints found" for modalities.
+const OPENROUTER_IMAGE_MODEL = Deno.env.get('OPENROUTER_IMAGE_MODEL') ?? 'google/gemini-2.5-flash-image'
+
+// Flux and similar models only output image; Gemini outputs both image and text
+const isImageOnlyModel = /flux|sourceful/i.test(OPENROUTER_IMAGE_MODEL)
+const OUTPUT_MODALITIES = isImageOnlyModel ? ['image'] : ['image', 'text']
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -21,11 +50,11 @@ serve(async (req) => {
   }
 
   try {
-    const { photoUrl, allPhotoUrls, photoId, userId, sessionId }: NormalizeRequest = await req.json()
+    const { photoUrl, allPhotoUrls, photoId, userId, sessionId, background, storagePath }: NormalizeRequest = await req.json()
 
-    if (!photoUrl || !allPhotoUrls?.length || !photoId || !userId || !sessionId) {
+    if ((!photoUrl && !storagePath) || !allPhotoUrls?.length || !photoId || !userId || !sessionId) {
       return new Response(
-        JSON.stringify({ error: 'photoUrl, allPhotoUrls, photoId, userId, sessionId required' }),
+        JSON.stringify({ error: 'photoUrl or storagePath, allPhotoUrls, photoId, userId, sessionId required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -49,14 +78,21 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+    const inputImageUrl = storagePath
+      ? `${supabaseUrl}/storage/v1/object/public/mirror_photos/${storagePath}`
+      : photoUrl!
+
+    const bgPrompt = background ? buildBackgroundPrompt(background) : 'Clean plain neutral background (white, light gray, or soft gradient).'
+    const fullPrompt = `Edit this fitting room photo. ${BASE_PROMPT} ${bgPrompt}`
+
     const content: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
       {
         type: 'text',
-        text: `Edit this fitting room photo. ${CLEAR_LOOK_PROMPT}`,
+        text: fullPrompt,
       },
       {
         type: 'image_url',
-        image_url: { url: photoUrl },
+        image_url: { url: inputImageUrl },
       },
     ]
 
@@ -69,7 +105,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: OPENROUTER_IMAGE_MODEL,
         messages: [{ role: 'user', content }],
-        modalities: ['image', 'text'],
+        modalities: OUTPUT_MODALITIES,
         max_tokens: 4096,
       }),
     })

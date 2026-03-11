@@ -7,7 +7,9 @@ export function usePhotoNormalization() {
     photoUrl: string,
     allPhotoUrls: string[],
     userId: string,
-    sessionId: string
+    sessionId: string,
+    background?: string,
+    storagePath?: string
   ): Promise<{ processedPhotoUrl: string }> {
     const { data: { session } } = await supabase.auth.getSession()
     let token = session?.access_token
@@ -27,7 +29,7 @@ export function usePhotoNormalization() {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: { photoUrl, allPhotoUrls, photoId, userId, sessionId },
+      body: { photoUrl, allPhotoUrls, photoId, userId, sessionId, background, storagePath },
     })
 
     if (error) throw await toFunctionError(error)

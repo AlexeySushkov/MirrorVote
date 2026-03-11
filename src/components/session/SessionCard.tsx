@@ -38,7 +38,7 @@ export function SessionCard({ session, onClick, selectable, selected, onSelectCh
               key={p.id}
               className="w-16 h-20 shrink-0 rounded-lg overflow-hidden bg-muted"
             >
-              <img src={p.photo_url} alt="" className="w-full h-full object-cover" />
+              <img src={p.processed_photo_url ?? p.photo_url} alt="" className="w-full h-full object-cover" />
             </div>
           ))}
         </div>

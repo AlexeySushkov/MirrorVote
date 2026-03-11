@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Loader2, PlusCircle, List, ImagePlus } from 'lucide-react'
+import { Loader2, PlusCircle, List, ImagePlus, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CarouselView } from '@/components/compare/CarouselView'
 import { PickBestView } from '@/components/compare/PickBestView'
 import { CompareToolbar } from '@/components/compare/CompareToolbar'
 import { InlineVerdict } from '@/components/analysis/InlineVerdict'
 import { OccasionPicker } from '@/components/analysis/OccasionPicker'
+import { BackgroundPicker } from '@/components/compare/BackgroundPicker'
 import { CollageExport } from '@/components/share/CollageExport'
 import { Progress } from '@/components/ui/progress'
 import { useSession, usePhotos, useUpdateSession, useUploadPhoto, MAX_PHOTOS } from '@/hooks/usePhotoSession'
@@ -38,6 +39,7 @@ export function Compare() {
 
   const [analyzing, setAnalyzing] = useState(false)
   const [occasionOpen, setOccasionOpen] = useState(false)
+  const [backgroundOpen, setBackgroundOpen] = useState(false)
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const [normalizing, setNormalizing] = useState(false)
   const [normalizeProgress, setNormalizeProgress] = useState(0)
@@ -50,13 +52,18 @@ export function Compare() {
   const currentPhoto: Photo | undefined =
     viewMode === 'pick-best' ? undefined : photosList[currentPhotoIndex]
   const [pickBestPhoto, setPickBestPhoto] = useState<Photo | undefined>()
-  const activePhoto = viewMode === 'pick-best' ? pickBestPhoto : currentPhoto
+  const activePhoto =
+    viewMode === 'pick-best'
+      ? pickBestPhoto
+        ? photosList.find((p) => p.id === pickBestPhoto.id) ?? pickBestPhoto
+        : undefined
+      : currentPhoto
 
   useEffect(() => {
-    if (!hasPhotoPair && viewMode === 'pick-best') {
+    if (!photosLoading && !hasPhotoPair && viewMode === 'pick-best') {
       setViewMode('carousel')
     }
-  }, [hasPhotoPair, viewMode, setViewMode])
+  }, [photosLoading, hasPhotoPair, viewMode, setViewMode])
 
   useEffect(() => {
     if (viewMode === 'carousel') {
@@ -90,23 +97,25 @@ export function Compare() {
     await queryClient.refetchQueries({ queryKey: ['photos', id] })
   }
 
-  async function handleClearLook() {
+  async function handleClearLook(background: string) {
     if (!user || !id || photosList.length === 0) return
-    if (allHaveProcessed) {
-      toggleNormalized()
-      return
-    }
     setNormalizing(true)
     setNormalizeProgress(0)
     try {
       const urls = photosList.map((p) => p.photo_url)
-      const needProcessing = photosList.filter((p) => !p.processed_photo_url)
+      const needProcessing = photosList
       for (let i = 0; i < needProcessing.length; i++) {
         const p = needProcessing[i]
-        await normalizePhoto(p.id, p.photo_url, urls, user.id, id)
+        const { processedPhotoUrl } = await normalizePhoto(p.id, p.photo_url, urls, user.id, id, background, p.storage_path)
         setNormalizeProgress(((i + 1) / needProcessing.length) * 100)
+        const urlWithBust = processedPhotoUrl + (processedPhotoUrl.includes('?') ? '&' : '?') + `t=${Date.now()}`
+        queryClient.setQueryData(['photos', id], (old: typeof photosList | undefined) => {
+          if (!old) return old
+          return old.map((ph) =>
+            ph.id === p.id ? { ...ph, processed_photo_url: urlWithBust } : ph
+          )
+        })
       }
-      await queryClient.refetchQueries({ queryKey: ['photos', id] })
       if (!showNormalized) toggleNormalized()
       toast.success(t('upload.clearLookDone'))
     } catch (e) {
@@ -135,27 +144,48 @@ export function Compare() {
         best_photo_id: photosList[result.best_index]?.id ?? null,
         ai_recommendation: result.recommendation,
       } as never)
-      for (let i = 0; i < photosList.length; i++) {
+      const analysisUpdates = photosList.map((p, i) => {
         const a = result.photos[i]
-        if (a) {
-          await supabase
-            .from('mirror_photos')
-            .update({
-              analysis: {
-                overall_score: a.overall_score,
-                fit_score: a.fit_score,
-                style_score: a.style_score,
-                color_score: a.color_score,
-                description: a.description,
-                verdict: a.verdict ?? '',
-                pros: a.pros ?? [],
-                cons: a.cons ?? [],
-                style_tips: a.style_tips ?? [],
-              },
-            } as never)
-            .eq('id', photosList[i].id)
+        if (!a) return null
+        const analysis = {
+          overall_score: a.overall_score,
+          fit_score: a.fit_score,
+          style_score: a.style_score,
+          color_score: a.color_score,
+          description: a.description,
+          verdict: a.verdict ?? '',
+          pros: a.pros ?? [],
+          cons: a.cons ?? [],
+          style_tips: a.style_tips ?? [],
         }
+        return { id: p.id, analysis }
+      })
+
+      for (const u of analysisUpdates) {
+        if (!u) continue
+        await supabase
+          .from('mirror_photos')
+          .update({ analysis: u.analysis } as never)
+          .eq('id', u.id)
       }
+
+      queryClient.setQueryData(['photos', id], (old: typeof photosList | undefined) => {
+        if (!old) return old
+        return old.map((p, i) => {
+          const u = analysisUpdates[i]
+          if (!u) return p
+          return { ...p, analysis: u.analysis }
+        })
+      })
+      queryClient.setQueryData(['session', id], (old: typeof session | undefined) => {
+        if (!old) return old
+        return {
+          ...old,
+          status: 'analyzed' as const,
+          best_photo_id: photosList[result.best_index]?.id ?? null,
+          ai_recommendation: result.recommendation,
+        }
+      })
       await queryClient.refetchQueries({ queryKey: ['photos', id] })
       await queryClient.refetchQueries({ queryKey: ['session', id] })
       toast.success('Анализ завершён')
@@ -215,6 +245,84 @@ export function Compare() {
           </>
         )}
 
+        {hasAtLeastOnePhoto && (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => navigate('/sessions')}>
+              <List className="mr-2 h-4 w-4" />
+              {t('nav.sessions')}
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/sessions/new')}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              {t('sessions.new')}
+            </Button>
+            {canAddMore && (
+              <Button
+                variant="outline"
+                onClick={() => addPhotoRef.current?.click()}
+                disabled={uploadPhoto.isPending}
+              >
+                {uploadPhoto.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <ImagePlus className="mr-2 h-4 w-4" />
+                )}
+                {t('upload.addMore')}
+              </Button>
+            )}
+            <Button variant="destructive" onClick={() => setOccasionOpen(true)} disabled={analyzing || !hasAtLeastOnePhoto}>
+              {analyzing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t('compare.analyzing')}
+                </>
+              ) : (
+                t('compare.analyze')
+              )}
+            </Button>
+            <OccasionPicker
+              open={occasionOpen}
+              onOpenChange={setOccasionOpen}
+              onSelect={handleAnalyze}
+              disabled={analyzing}
+            />
+            <Button
+              variant="destructive"
+              onClick={() => setBackgroundOpen(true)}
+              disabled={normalizing}
+            >
+              {normalizing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Simple Look (AI)...
+                </>
+              ) : (
+                t('compare.normalized')
+              )}
+            </Button>
+            <BackgroundPicker
+              open={backgroundOpen}
+              onOpenChange={setBackgroundOpen}
+              onSelect={(bg) => {
+                setBackgroundOpen(false)
+                handleClearLook(bg)
+              }}
+              disabled={normalizing}
+            />
+            {hasPhotoPair && (
+              <CollageExport photos={photosList} bestPhotoId={session.best_photo_id} />
+            )}
+            {photosList.some((p) => p.processed_photo_url) && (
+              <Button
+                variant={showNormalized ? 'outline' : 'secondary'}
+                onClick={toggleNormalized}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                {showNormalized ? t('compare.original') : t('compare.backToLook')}
+              </Button>
+            )}
+          </div>
+        )}
+
         {session.status === 'analyzed' && activePhoto?.analysis && (
           <InlineVerdict analysis={activePhoto.analysis} />
         )}
@@ -233,64 +341,6 @@ export function Compare() {
             </p>
           </div>
         )}
-
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => navigate('/sessions')}>
-            <List className="mr-2 h-4 w-4" />
-            {t('nav.sessions')}
-          </Button>
-          <Button variant="outline" onClick={() => navigate('/sessions/new')}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            {t('sessions.new')}
-          </Button>
-          {canAddMore && (
-            <Button
-              variant="outline"
-              onClick={() => addPhotoRef.current?.click()}
-              disabled={uploadPhoto.isPending}
-            >
-              {uploadPhoto.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <ImagePlus className="mr-2 h-4 w-4" />
-              )}
-              {t('upload.addMore')}
-            </Button>
-          )}
-          <Button variant="destructive" onClick={() => setOccasionOpen(true)} disabled={analyzing || !hasAtLeastOnePhoto}>
-            {analyzing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t('compare.analyzing')}
-              </>
-            ) : (
-              t('compare.analyze')
-            )}
-          </Button>
-          <OccasionPicker
-            open={occasionOpen}
-            onOpenChange={setOccasionOpen}
-            onSelect={handleAnalyze}
-            disabled={analyzing}
-          />
-          <Button
-            variant="destructive"
-            onClick={handleClearLook}
-            disabled={normalizing}
-          >
-            {normalizing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Simple Look (AI)...
-              </>
-            ) : (
-              showNormalized && allHaveProcessed ? t('compare.original') : t('compare.normalized')
-            )}
-          </Button>
-          {hasPhotoPair && (
-            <CollageExport photos={photosList} bestPhotoId={session.best_photo_id} />
-          )}
-        </div>
       </div>
     </div>
   )

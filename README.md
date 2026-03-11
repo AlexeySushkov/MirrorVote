@@ -4,6 +4,13 @@
 
 ## История изменений
 
+### 2026-03-11
+
+- **Layout Pic the Best и Carousel** — кнопки под изображением, текст (вердикт, анализ) под кнопками; в Pick Best: фото сверху, затем Restart/Exclude/точки, затем Winner; основные кнопки (Sessions, Add Photos, Rate, Simple Look, Export) под каруселью/фото
+- **Rate Outfits** — текст анализа появляется сразу после нажатия Rate (без перезагрузки): исправлен activePhoto для pick-best (берётся из photosList по id), добавлен refetchQueries после анализа
+- **Simple Look** — картинки с новым фоном появляются сразу после выбора фона: синхронизация remaining в PickBestView при изменении photos, cache-bust (?t=timestamp) для URL обработанных фото, key на img для перезагрузки при смене URL
+- **Кнопка Original** — глобальный переключатель всех фото: Original / Back to Look (вместо Simple Look при показе оригинала); показывается при наличии хотя бы одного обработанного фото
+
 ### 2026-03-09
 
 - **Rate Outfit** — выбор случая (офис, свидание, вечеринка, свой вариант), оценка с учётом контекста, текстовая рекомендация для каждого фото
@@ -107,10 +114,18 @@ supabase db push
    supabase functions deploy normalize-photo
    supabase functions deploy analyze-outfits
    ```
-2. Добавьте секрет в Dashboard → Edge Functions → Secrets:
-   - `OPENROUTER_API_KEY` — ключ с [openrouter.ai](https://openrouter.ai)
-   - (опционально) `OPENROUTER_MODEL` — для оценки нарядов: `google/gemini-2.5-flash`
-   - (опционально) `OPENROUTER_IMAGE_MODEL` — для Simple Look: `google/gemini-2.5-flash-image` (Nano Banana)
+2. **Где задавать Deno.env** — переменные окружения для Edge Functions задаются в **Supabase Dashboard → Edge Functions → Secrets**. Эти значения доступны в коде через `Deno.env.get('ИМЯ')`. Добавить секрет: кнопка **Add new secret** → Name и Value. Через CLI: `supabase secrets set ИМЯ=значение`. После изменения секретов функции нужно передеплоить.
+
+   **Параметры для Edge Functions:**
+
+   | Параметр | Обязательный | Функция | Описание |
+   |----------|--------------|---------|----------|
+   | `OPENROUTER_API_KEY` | да | normalize-photo, analyze-outfits | Ключ API с [openrouter.ai](https://openrouter.ai) |
+   | `OPENROUTER_MODEL` | нет | analyze-outfits | Модель для оценки нарядов (Rate Outfits). По умолчанию: `google/gemini-2.5-flash` |
+   | `OPENROUTER_IMAGE_MODEL` | нет | normalize-photo | Модель для Simple Look (image-to-image). По умолчанию: `google/gemini-2.5-flash-image`. Важно: только модель с поддержкой вывода изображений, не подставляйте текстовую модель |
+   | `SUPABASE_URL` | — | все | Подставляется Supabase автоматически |
+   | `SUPABASE_SERVICE_ROLE_KEY` | — | все | Подставляется Supabase автоматически |
+
 3. Для функций `analyze-outfits` и `normalize-photo` в Dashboard → Edge Functions → Details выключите переключатель `Verify JWT with legacy secret` и сохраните изменения.
    Это убирает конфликт legacy-режима с пользовательским JWT и предотвращает ошибку `401 Invalid JWT` при вызове функций из приложения.
    После каждого redeploy функций перепроверьте этот переключатель и, если он снова включился, выключите его повторно.
@@ -317,6 +332,7 @@ curl "https://ваш-проект.supabase.co/functions/v1/cleanup-orphans" \
 - [ ] **История анализов** — хранение нескольких оценок (разные occasion) для одной сессии
 - [ ] **Теги и поиск** — теги для сессий, фильтр/поиск в списке
 - [ ] **Свайп-навигация** — жесты влево/вправо на мобильных
+- [ ] **Полноэкранный режим** — просмотр фотографий на весь экран
 
 ### AI
 - [ ] **Рекомендация покупки** — «купи / не бери» с аргументацией

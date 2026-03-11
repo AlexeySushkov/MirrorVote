@@ -9,13 +9,8 @@ interface InlineVerdictProps {
 export function InlineVerdict({ analysis }: InlineVerdictProps) {
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3">
+      <div className="flex justify-start">
         <OutfitScore score={analysis.overall_score} size="sm" />
-        <div className="flex gap-3 text-xs text-muted-foreground">
-          <span>Fit {analysis.fit_score}</span>
-          <span>Style {analysis.style_score}</span>
-          <span>Color {analysis.color_score}</span>
-        </div>
       </div>
 
       {analysis.verdict && (

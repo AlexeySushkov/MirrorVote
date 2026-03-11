@@ -17,6 +17,12 @@ export function PickBestView({ photos, showNormalized, bestPhotoId, onCurrentPho
   const [remaining, setRemaining] = useState<Photo[]>(photos)
   const [currentIndex, setCurrentIndex] = useState(0)
 
+  useEffect(() => {
+    setRemaining((prev) =>
+      prev.map((r) => photos.find((p) => p.id === r.id) ?? r)
+    )
+  }, [photos])
+
   const restart = useCallback(() => {
     setRemaining([...photos])
     setCurrentIndex(0)
