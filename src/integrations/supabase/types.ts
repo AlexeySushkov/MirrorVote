@@ -42,6 +42,7 @@ export interface Database {
           status: 'uploading' | 'normalizing' | 'ready' | 'analyzed'
           best_photo_id: string | null
           ai_recommendation: string | null
+          share_token: string | null
           created_at: string
           updated_at: string
         }
@@ -53,6 +54,7 @@ export interface Database {
           status?: 'uploading' | 'normalizing' | 'ready' | 'analyzed'
           best_photo_id?: string | null
           ai_recommendation?: string | null
+          share_token?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -64,6 +66,7 @@ export interface Database {
           status?: 'uploading' | 'normalizing' | 'ready' | 'analyzed'
           best_photo_id?: string | null
           ai_recommendation?: string | null
+          share_token?: string | null
           created_at?: string
           updated_at?: string
         }

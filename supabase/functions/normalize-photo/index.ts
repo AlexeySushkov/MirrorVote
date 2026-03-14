@@ -34,7 +34,7 @@ function buildBackgroundPrompt(background: string): string {
   return `Background: ${background}.`
 }
 
-const BASE_PROMPT = `Professional fitting room photo edit. Keep face and expression unchanged. Studio lighting, even and flattering. Person fills the frame. Remove phone if visible. Pose: one arm down, one hand on hip, feet shoulder-width apart. Preserve identity, clothing, colors and fabric texture. No extra accessories.`
+const BASE_PROMPT = `Professional fitting room photo edit. Keep the original faces exactly the same. Preserve identity, facial structure, skin texture, and expression. Do not regenerate or alter the faces. Faces must remain identical to the original image. Do not alter facial structure, eyes, nose, mouth, or skin. Studio lighting, even and flattering. Person fills the frame. Remove phone if visible. Pose: one arm down, one hand on hip, feet shoulder-width apart. Preserve clothing, colors and fabric texture. No extra accessories.`
 
 // Must use an image-capable model (e.g. gemini-2.5-flash-image). Do NOT fall back to OPENROUTER_MODEL
 // (gemini-2.5-flash) — it does not support image output and causes "No endpoints found" for modalities.
@@ -143,18 +143,19 @@ serve(async (req) => {
     }
 
     const ext = 'jpg'
-    const storagePath = `${userId}/${sessionId}/${photoId}_processed.${ext}`
+    const timestamp = Date.now()
+    const processedStoragePath = `${userId}/${sessionId}/${photoId}_processed_${timestamp}.${ext}`
 
     const { error: uploadError } = await supabase.storage
       .from('mirror_photos')
-      .upload(storagePath, imgBytes, {
+      .upload(processedStoragePath, imgBytes, {
         contentType: 'image/jpeg',
         upsert: true,
       })
 
     if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`)
 
-    const { data: urlData } = supabase.storage.from('mirror_photos').getPublicUrl(storagePath)
+    const { data: urlData } = supabase.storage.from('mirror_photos').getPublicUrl(processedStoragePath)
     const processedPhotoUrl = urlData.publicUrl
 
     return new Response(

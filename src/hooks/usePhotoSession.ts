@@ -123,9 +123,12 @@ export function useUploadPhoto(userId: string | undefined, sessionId: string | u
       }
       return photo as Photo
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['photos', sessionId] })
-      queryClient.invalidateQueries({ queryKey: ['session', sessionId] })
+    onSuccess: async (photo) => {
+      const sid = photo.session_id
+      await supabase.from('mirror_sessions').update({ status: 'ready' }).eq('id', sid)
+      queryClient.invalidateQueries({ queryKey: ['photos', sid] })
+      queryClient.invalidateQueries({ queryKey: ['session', sid] })
+      queryClient.invalidateQueries({ queryKey: ['sessions'] })
     },
     onError: (err) => showErrorToast(err, 'Upload failed', 'useUploadPhoto.onError'),
   })

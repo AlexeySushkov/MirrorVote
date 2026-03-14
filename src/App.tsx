@@ -10,6 +10,7 @@ import { Auth } from '@/pages/Auth'
 import { Sessions } from '@/pages/Sessions'
 import { NewSession } from '@/pages/NewSession'
 import { Compare } from '@/pages/Compare'
+import { VotePage } from '@/pages/VotePage'
 import { NotFound } from '@/pages/NotFound'
 
 const queryClient = new QueryClient()
@@ -38,6 +39,7 @@ export function App() {
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/v/:token" element={<VotePage />} />
                   <Route
                     path="/sessions"
                     element={

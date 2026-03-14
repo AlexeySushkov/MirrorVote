@@ -74,18 +74,26 @@ export function NewSession() {
       return
     }
     setNormalizing(true)
+    let failedPhotoId: string | null = null
     try {
       const urls = photosList.map((p) => p.photo_url)
       await updateSession.mutateAsync({ status: 'normalizing' as const } as never)
       for (let i = 0; i < photosList.length; i++) {
-        await supabase.from('mirror_photos').update({ status: 'normalizing' }).eq('id', photosList[i].id)
-        await normalizePhoto(photosList[i].id, photosList[i].photo_url, urls, user.id, sessionId)
+        const photo = photosList[i]
+        failedPhotoId = photo.id
+        await supabase.from('mirror_photos').update({ status: 'normalizing' }).eq('id', photo.id)
+        await normalizePhoto(photo.id, photo.photo_url, urls, user.id, sessionId)
+        failedPhotoId = null
         setNormalizeProgress(((i + 1) / photosList.length) * 100)
       }
       await updateSession.mutateAsync({ status: 'ready' })
       toast.success(t('upload.clearLookDone'))
       navigate(`/sessions/${sessionId}`)
     } catch (e) {
+      if (failedPhotoId) {
+        await supabase.from('mirror_photos').update({ status: 'error' }).eq('id', failedPhotoId)
+      }
+      await updateSession.mutateAsync({ status: 'ready' })
       showErrorToast(e, 'Ошибка нормализации', 'NewSession.handleNormalize')
     } finally {
       setNormalizing(false)

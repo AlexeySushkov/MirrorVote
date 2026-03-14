@@ -1,11 +1,15 @@
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Link2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Button } from '@/components/ui/button'
 import type { Session } from '@/integrations/supabase/types'
-import { usePhotos } from '@/hooks/usePhotoSession'
+import { usePhotos, useUpdateSession, MAX_PHOTOS } from '@/hooks/usePhotoSession'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 interface SessionCardProps {
   session: Session
@@ -16,7 +20,31 @@ interface SessionCardProps {
 }
 
 export function SessionCard({ session, onClick, selectable, selected, onSelectChange }: SessionCardProps) {
+  const { t } = useLanguage()
+  const queryClient = useQueryClient()
   const { data: photos } = usePhotos(session.id)
+  const updateSession = useUpdateSession(session.id)
+
+  const handleCopyVoteLink = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      let token = session.share_token
+      if (!token) {
+        token = crypto.randomUUID().replace(/-/g, '').slice(0, 12)
+        await updateSession.mutateAsync({ share_token: token } as never)
+        queryClient.setQueryData(['session', session.id], (old: typeof session | undefined) =>
+          old ? { ...old, share_token: token } : old
+        )
+        queryClient.invalidateQueries({ queryKey: ['sessions'] })
+      }
+      const url = `${window.location.origin}/v/${token}`
+      await navigator.clipboard.writeText(url)
+      toast.success(t('vote.linkCopied'))
+    } catch (err) {
+      console.error('Copy vote link error:', err)
+      toast.error(t('vote.error'))
+    }
+  }
 
   return (
     <Card
@@ -33,7 +61,7 @@ export function SessionCard({ session, onClick, selectable, selected, onSelectCh
           />
         )}
         <div className="flex gap-2 overflow-x-auto flex-1 min-w-0">
-          {photos?.slice(0, 3).map((p) => (
+          {photos?.slice(0, MAX_PHOTOS).map((p) => (
             <div
               key={p.id}
               className="w-16 h-20 shrink-0 rounded-lg overflow-hidden bg-muted"
@@ -46,12 +74,23 @@ export function SessionCard({ session, onClick, selectable, selected, onSelectCh
           <div>
             <p className="font-medium truncate">{session.title}</p>
             <p className="text-xs text-muted-foreground">
-              {format(new Date(session.created_at), 'd MMM yyyy', { locale: ru })}
+              {format(new Date(session.created_at), 'd MMM yyyy, HH:mm', { locale: ru })}
             </p>
           </div>
-          <Badge variant={session.status === 'analyzed' ? 'accent' : 'secondary'}>
-            {session.status}
-          </Badge>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant={session.status === 'analyzed' ? 'accent' : 'secondary'}>
+              {t(`session.status.${session.status}`)}
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-2 shrink-0"
+              onClick={handleCopyVoteLink}
+            >
+              <Link2 className="h-4 w-4 mr-1" />
+              {t('vote.copyLink')}
+            </Button>
+          </div>
         </div>
         <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
       </CardContent>

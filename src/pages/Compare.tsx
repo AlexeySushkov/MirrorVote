@@ -101,12 +101,16 @@ export function Compare() {
     if (!user || !id || photosList.length === 0) return
     setNormalizing(true)
     setNormalizeProgress(0)
+    let failedPhotoId: string | null = null
     try {
+      await updateSession.mutateAsync({ status: 'normalizing' as const } as never)
       const urls = photosList.map((p) => p.photo_url)
       const needProcessing = photosList
       for (let i = 0; i < needProcessing.length; i++) {
         const p = needProcessing[i]
+        failedPhotoId = p.id
         const { processedPhotoUrl } = await normalizePhoto(p.id, p.photo_url, urls, user.id, id, background, p.storage_path)
+        failedPhotoId = null
         setNormalizeProgress(((i + 1) / needProcessing.length) * 100)
         const urlWithBust = processedPhotoUrl + (processedPhotoUrl.includes('?') ? '&' : '?') + `t=${Date.now()}`
         queryClient.setQueryData(['photos', id], (old: typeof photosList | undefined) => {
@@ -116,9 +120,14 @@ export function Compare() {
           )
         })
       }
+      await updateSession.mutateAsync({ status: 'ready' })
       if (!showNormalized) toggleNormalized()
       toast.success(t('upload.clearLookDone'))
     } catch (e) {
+      if (failedPhotoId) {
+        await supabase.from('mirror_photos').update({ status: 'error' }).eq('id', failedPhotoId)
+      }
+      await updateSession.mutateAsync({ status: 'ready' })
       showErrorToast(e, 'Simple Look (AI) error', 'Compare.handleClearLook')
     } finally {
       setNormalizing(false)
