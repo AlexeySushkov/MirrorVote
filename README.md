@@ -6,6 +6,7 @@
 
 | Коммит | Дата | Описание |
 |--------|------|----------|
+| `b90f43c` | 2026-03-16 | docs: добавлена история git push в README |
 | `fe4d70c` | 2026-03-16 | feat: голосование друзей, фон сессии, Neutral в Rate Outfit, локализация |
 | `c21b249` | 2026-03-14 | Голосование друзей: VotePage, StarRating, SessionCard, миграция mirror_votes |
 | `2b82759` | 2026-03-11 | Layout, Rate/Simple Look fixes, Original button |
