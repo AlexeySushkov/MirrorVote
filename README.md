@@ -2,6 +2,18 @@
 
 Веб-приложение для сравнения нарядов из примерочной с помощью AI. Загрузите 1–6 фото, получите AI-обработку (Simple Look) и оценку нарядов с учётом выбранного случая.
 
+## История git push
+
+| Коммит | Дата | Описание |
+|--------|------|----------|
+| `fe4d70c` | 2026-03-16 | feat: голосование друзей, фон сессии, Neutral в Rate Outfit, локализация |
+| `c21b249` | 2026-03-14 | Голосование друзей: VotePage, StarRating, SessionCard, миграция mirror_votes |
+| `2b82759` | 2026-03-11 | Layout, Rate/Simple Look fixes, Original button |
+| `b490232` | 2026-03-10 | Rate Outfits (AI), Simple Look (AI), Pick the Best, occasion picker |
+| `f7010fb` | 2026-03-08 | Fix Supabase auth flow and Edge Function stability |
+| `7f778a2` | 2026-03-07 | Add MIT license |
+| `67fc6a2` | 2026-03-07 | Initial commit: MirrorVote — AI fitting room assistant |
+
 ## История изменений
 
 ### 2026-03-14
