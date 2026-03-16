@@ -112,8 +112,13 @@ serve(async (req) => {
 
     const data = await response.json()
 
+    if (!response.ok) {
+      console.error('OpenRouter HTTP', response.status, JSON.stringify(data))
+    }
     if (data.error) {
-      throw new Error(data.error.message ?? 'OpenRouter API error')
+      const msg = data.error.message ?? data.error.code ?? 'OpenRouter API error'
+      console.error('OpenRouter error:', JSON.stringify(data.error))
+      throw new Error(`OpenRouter: ${msg}`)
     }
 
     const message = data.choices?.[0]?.message

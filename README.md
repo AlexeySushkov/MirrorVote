@@ -9,6 +9,10 @@
 - **Голосование друзей** — публичная ссылка на сессию (`/v/:token`), оценка фото 1–5 звёзд; таблица `mirror_votes`, RPC `get_public_session` и `submit_rating`
 - **Кнопка «Ссылка для голосования»** — перенесена в карточку сессии (SessionCard); при клике генерирует share_token, копирует URL в буфер; окантовка (variant outline)
 - **Страница голосования (VotePage)** — рейтинг (4.2 ★ · 3 votes) вынесен на отдельную строку выше, увеличен шрифт; кнопка «Обновить» для обновления данных без перезагрузки страницы
+- **Фон в карточке и голосовании** — колонка `background` в `mirror_sessions`; в карточке и на VotePage отображается «Примерка (Офис)» и т.п.; фон сохраняется при Simple Look
+- **Rate Outfit — кнопка Neutral** — в диалоге выбора случая добавлена кнопка «Нейтральный» на всю ширину сверху; при нажатии анализ с промптом по умолчанию (без occasion)
+- **Технологии** — расширенный стек в README (Frontend, UI, Backend, AI)
+- **TODO** — пункт «Приватность Storage» (публичный bucket, signed URLs)
 - **Статусы сессий и фото** — локализация статусов (RU/EN) в карточках примерок; при ошибке нормализации фото получает `status: error`, сессия откатывается в `ready`; при повторной нормализации в Compare сессия обновляется (`normalizing` → `ready`); документация в README
 
 ### 2026-03-11
@@ -46,9 +50,10 @@
 
 | Слой | Стек |
 |------|------|
-| Frontend | React 18, TypeScript, Vite 5, Tailwind CSS, shadcn/ui |
-| Backend | Supabase (Auth, Storage, Edge Functions) |
-| AI | OpenRouter (оценка нарядов, Simple Look через google/gemini-2.5-flash-image) |
+| **Frontend** | React 18, TypeScript, Vite 7, Tailwind CSS, shadcn/ui (Radix UI), React Router 6, TanStack Query 5 |
+| **UI** | Lucide React (иконки), Embla Carousel, date-fns, Sonner (toast) |
+| **Backend** | Supabase (PostgreSQL, Auth, Storage, Edge Functions на Deno) |
+| **AI** | OpenRouter (оценка нарядов, Simple Look через google/gemini-2.5-flash-image) |
 
 ## Быстрый старт
 
@@ -410,6 +415,7 @@ curl "https://ваш-проект.supabase.co/functions/v1/cleanup-orphans" \
 - [ ] **Лимиты и подписка** — бесплатно N анализов/месяц, платный план для безлимита
 
 ### Техническое
+- [ ] **Приватность Storage** — bucket `mirror_photos` публичный: любой с URL может скачать фото. Варианты: приватный bucket + signed URLs, или Edge Function для проверки прав перед отдачей файла
 - [ ] **Оптимизация изображений** — WebP, lazy loading, CDN
 - [ ] **Rate limiting** — защита edge-функций от злоупотреблений
 - [ ] **Автоудаление анонимов** — cron (pg_cron / GitHub Actions) для очистки старых анонимных сессий

@@ -49,6 +49,19 @@ export function OccasionPicker({ open, onOpenChange, onSelect, disabled }: Occas
           <DialogTitle>{t('compare.chooseOccasion')}</DialogTitle>
         </DialogHeader>
 
+        <Button
+          variant="outline"
+          className="w-full h-14 flex flex-col gap-1 mb-3"
+          disabled={disabled}
+          onClick={() => {
+            onSelect('')
+            onOpenChange(false)
+            setCustomValue('')
+          }}
+        >
+          <span className="text-sm font-medium">{t('compare.occasionNeutral')}</span>
+        </Button>
+
         <div className="grid grid-cols-2 gap-3 py-2">
           {PRESETS.map(({ key, icon: Icon }) => (
             <Button

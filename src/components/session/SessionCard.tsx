@@ -72,7 +72,11 @@ export function SessionCard({ session, onClick, selectable, selected, onSelectCh
         </div>
         <div className="flex flex-col justify-between min-w-0">
           <div>
-            <p className="font-medium truncate">{session.title}</p>
+            <p className="font-medium truncate">
+              {session.background
+                ? `${session.title} (${session.background})`
+                : session.title}
+            </p>
             <p className="text-xs text-muted-foreground">
               {format(new Date(session.created_at), 'd MMM yyyy, HH:mm', { locale: ru })}
             </p>

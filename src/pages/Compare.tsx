@@ -120,7 +120,7 @@ export function Compare() {
           )
         })
       }
-      await updateSession.mutateAsync({ status: 'ready' })
+      await updateSession.mutateAsync({ status: 'ready', background } as never)
       if (!showNormalized) toggleNormalized()
       toast.success(t('upload.clearLookDone'))
     } catch (e) {

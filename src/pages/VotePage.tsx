@@ -20,6 +20,7 @@ interface PublicPhoto {
 interface PublicSession {
   id: string
   title: string
+  background: string | null
 }
 
 interface PublicSessionData {
@@ -146,7 +147,11 @@ export function VotePage() {
       <div className="container max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
-            <h1 className="font-serif text-2xl font-semibold mb-2">{session.title}</h1>
+            <h1 className="font-serif text-2xl font-semibold mb-2">
+              {session.background
+                ? `${session.title} (${session.background})`
+                : session.title}
+            </h1>
             <p className="text-sm text-muted-foreground">{t('vote.subtitle')}</p>
           </div>
           <Button
