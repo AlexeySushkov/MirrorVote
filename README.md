@@ -2,6 +2,12 @@
 
 Веб-приложение для сравнения нарядов из примерочной с помощью AI. Загрузите 1–6 фото, получите AI-обработку (Simple Look) и оценку нарядов с учётом выбранного случая.
 
+## Лендинг
+
+- [**Лендинг на GitHub**](https://alexeysushkov.github.io/MirrorVoteLanding/)
+- [**Лендинг на Selectel**](https://alexeysushkov.github.io/MirrorVoteLanding/) - TBD
+
+
 ## История git push
 
 | Коммит | Дата | Описание |
