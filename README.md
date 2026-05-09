@@ -23,6 +23,14 @@
 
 ## История изменений
 
+### 2026-05-09
+
+- **Монетизация и лимиты** — добавлены таблицы `billing_plan_limits`, `billing_subscriptions`, `usage_analytics_monthly` и RPC `consume_analysis_credit` / `get_analysis_quota` для модели free/pro с лимитом бесплатных анализов
+- **YooKassa подписка** — добавлены edge-функции `create-yookassa-payment` и `yookassa-webhook`; оплата создаётся с idempotence key, webhook обновляет подписку пользователя
+- **UI квоты и апгрейда** — на странице Compare показывается текущая квота анализов, кнопка `Upgrade` доступна всегда и ведёт на оплату YooKassa
+- **Совместимость окружений** — заменено использование `crypto.randomUUID()` на fallback-генератор ID в фронтенде и функции создания платежа
+- **Цена Pro** — значение по умолчанию `YOOKASSA_PRO_AMOUNT` изменено с `299.00` на `99.00`
+
 ### 2026-03-14
 
 - **Голосование друзей** — публичная ссылка на сессию (`/v/:token`), оценка фото 1–5 звёзд; таблица `mirror_votes`, RPC `get_public_session` и `submit_rating`
@@ -158,7 +166,7 @@ supabase db push
    | `OPENROUTER_IMAGE_MODEL` | нет | normalize-photo | Модель для Simple Look (image-to-image). По умолчанию: `google/gemini-2.5-flash-image`. Важно: только модель с поддержкой вывода изображений |
    | `YOOKASSA_SHOP_ID` | да (для подписки) | create-yookassa-payment, yookassa-webhook | Shop ID из личного кабинета ЮKassa |
    | `YOOKASSA_SECRET_KEY` | да (для подписки) | create-yookassa-payment, yookassa-webhook | Secret key ЮKassa |
-   | `YOOKASSA_PRO_AMOUNT` | нет | create-yookassa-payment | Стоимость тарифа `pro` в RUB, по умолчанию `299.00` |
+   | `YOOKASSA_PRO_AMOUNT` | нет | create-yookassa-payment | Стоимость тарифа `pro` в RUB, по умолчанию `99.00` |
    | `APP_URL` | да (для подписки) | create-yookassa-payment | Публичный URL приложения для `return_url` после оплаты |
    | `SUPABASE_URL` | — | все | Подставляется Supabase автоматически |
    | `SUPABASE_SERVICE_ROLE_KEY` | — | все | Подставляется Supabase автоматически |

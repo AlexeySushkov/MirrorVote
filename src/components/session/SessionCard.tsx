@@ -10,6 +10,7 @@ import { usePhotos, useUpdateSession, MAX_PHOTOS } from '@/hooks/usePhotoSession
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { makeClientId } from '@/utils/id'
 
 interface SessionCardProps {
   session: Session
@@ -30,7 +31,7 @@ export function SessionCard({ session, onClick, selectable, selected, onSelectCh
     try {
       let token = session.share_token
       if (!token) {
-        token = crypto.randomUUID().replace(/-/g, '').slice(0, 12)
+        token = makeClientId().replace(/-/g, '').slice(0, 12)
         await updateSession.mutateAsync({ share_token: token } as never)
         queryClient.setQueryData(['session', session.id], (old: typeof session | undefined) =>
           old ? { ...old, share_token: token } : old

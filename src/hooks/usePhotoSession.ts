@@ -4,6 +4,7 @@ import type { Session, Photo } from '@/integrations/supabase/types'
 import { resizeImage } from '@/utils/imageUtils'
 import { MAX_FILE_SIZE, ACCEPTED_FORMATS } from '@/utils/constants'
 import { showErrorToast } from '@/utils/errorToast'
+import { makeClientId } from '@/utils/id'
 
 export function useSessions(userId: string | undefined) {
   return useQuery({
@@ -86,7 +87,7 @@ export function useUploadPhoto(userId: string | undefined, sessionId: string | u
       const resized = await resizeImage(file)
       const blob = resized instanceof Blob ? resized : new Blob([resized])
       const ext = file.name.split('.').pop() ?? 'jpg'
-      const photoId = crypto.randomUUID()
+      const photoId = makeClientId()
       const filePath = `${userId}/${sid}/${photoId}.${ext}`
 
       const { data: uploadData, error: uploadError } = await supabase.storage

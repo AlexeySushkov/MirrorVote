@@ -12,6 +12,15 @@ function basicAuth(shopId: string, secretKey: string): string {
   return `Basic ${btoa(raw)}`
 }
 
+function makeIdempotenceKey(): string {
+  // Some runtimes may not expose crypto.randomUUID().
+  const maybeRandomUUID = (globalThis.crypto as Crypto & { randomUUID?: () => string } | undefined)?.randomUUID
+  if (typeof maybeRandomUUID === 'function') {
+    return maybeRandomUUID()
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -23,7 +32,7 @@ serve(async (req) => {
     const yookassaShopId = Deno.env.get('YOOKASSA_SHOP_ID') ?? ''
     const yookassaSecretKey = Deno.env.get('YOOKASSA_SECRET_KEY') ?? ''
     const appUrl = Deno.env.get('APP_URL') ?? ''
-    const defaultAmount = Deno.env.get('YOOKASSA_PRO_AMOUNT') ?? '299.00'
+    const defaultAmount = Deno.env.get('YOOKASSA_PRO_AMOUNT') ?? '99.00'
 
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Supabase service config missing')
@@ -74,7 +83,7 @@ serve(async (req) => {
       },
     }
 
-    const idempotenceKey = crypto.randomUUID()
+    const idempotenceKey = makeIdempotenceKey()
     const ykResponse = await fetch('https://api.yookassa.ru/v3/payments', {
       method: 'POST',
       headers: {
