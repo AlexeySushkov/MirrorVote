@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 
 interface AnalyzeRequest {
@@ -25,10 +26,61 @@ serve(async (req) => {
     }
 
     const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY')
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     if (!OPENROUTER_API_KEY) {
       return new Response(
         JSON.stringify({ error: 'OpenRouter API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({ error: 'Supabase config missing' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    const jwt = authHeader.replace('Bearer ', '').trim()
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${jwt}`,
+        },
+      },
+    })
+
+    const { data: quotaRows, error: quotaError } = await supabase.rpc('consume_analysis_credit')
+    if (quotaError) {
+      throw new Error(`Quota check failed: ${quotaError.message}`)
+    }
+
+    const quota = Array.isArray(quotaRows) ? quotaRows[0] : quotaRows
+    if (!quota) {
+      throw new Error('Quota check returned empty result')
+    }
+    if (!quota.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: 'Лимит бесплатных анализов исчерпан. Оформите подписку.',
+          code: 'LIMIT_REACHED',
+          quota: {
+            used: quota.used,
+            limit: quota.limit_count,
+            remaining: quota.remaining,
+            plan_code: quota.plan_code,
+            period_yyyymm: quota.period_yyyymm,
+          },
+        }),
+        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -96,7 +148,16 @@ serve(async (req) => {
     const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : { photos: [], best_index: 0, recommendation: '', comparison: '' }
 
     return new Response(
-      JSON.stringify({ analysis }),
+      JSON.stringify({
+        analysis,
+        quota: {
+          used: quota.used,
+          limit: quota.limit_count,
+          remaining: quota.remaining,
+          plan_code: quota.plan_code,
+          period_yyyymm: quota.period_yyyymm,
+        },
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {

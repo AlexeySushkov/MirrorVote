@@ -11,9 +11,17 @@ export async function toFunctionError(error: unknown): Promise<Error> {
 
   try {
     const payload = await context.json?.()
-    if (payload && typeof payload === 'object' && 'error' in payload) {
-      const message = String((payload as { error?: unknown }).error ?? '').trim()
-      if (message) return new Error(message)
+    if (payload && typeof payload === 'object') {
+      const payloadObj = payload as { error?: unknown; code?: unknown; quota?: unknown }
+      if ('error' in payloadObj) {
+        const message = String(payloadObj.error ?? '').trim()
+        if (message) {
+          const result = new Error(message) as Error & { code?: string; quota?: unknown }
+          if (typeof payloadObj.code === 'string') result.code = payloadObj.code
+          if (payloadObj.quota !== undefined) result.quota = payloadObj.quota
+          return result
+        }
+      }
     }
   } catch {
     // Ignore JSON parse errors and try plain text fallback

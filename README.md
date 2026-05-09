@@ -156,6 +156,10 @@ supabase db push
    | `OPENROUTER_API_KEY` | да | normalize-photo, analyze-outfits | Ключ API с [openrouter.ai](https://openrouter.ai) |
    | `OPENROUTER_MODEL` | нет | analyze-outfits | Модель для оценки нарядов (Rate Outfits). По умолчанию: `google/gemini-2.5-flash` |
    | `OPENROUTER_IMAGE_MODEL` | нет | normalize-photo | Модель для Simple Look (image-to-image). По умолчанию: `google/gemini-2.5-flash-image`. Важно: только модель с поддержкой вывода изображений |
+   | `YOOKASSA_SHOP_ID` | да (для подписки) | create-yookassa-payment, yookassa-webhook | Shop ID из личного кабинета ЮKassa |
+   | `YOOKASSA_SECRET_KEY` | да (для подписки) | create-yookassa-payment, yookassa-webhook | Secret key ЮKassa |
+   | `YOOKASSA_PRO_AMOUNT` | нет | create-yookassa-payment | Стоимость тарифа `pro` в RUB, по умолчанию `299.00` |
+   | `APP_URL` | да (для подписки) | create-yookassa-payment | Публичный URL приложения для `return_url` после оплаты |
    | `SUPABASE_URL` | — | все | Подставляется Supabase автоматически |
    | `SUPABASE_SERVICE_ROLE_KEY` | — | все | Подставляется Supabase автоматически |
 
@@ -168,6 +172,18 @@ supabase db push
 3. Для функций `analyze-outfits` и `normalize-photo` в Dashboard → Edge Functions → Details выключите переключатель `Verify JWT with legacy secret` и сохраните изменения.
    Это убирает конфликт legacy-режима с пользовательским JWT и предотвращает ошибку `401 Invalid JWT` при вызове функций из приложения.
    После каждого redeploy функций перепроверьте этот переключатель и, если он снова включился, выключите его повторно.
+
+4. Для монетизации разверните дополнительные функции:
+   ```bash
+   supabase functions deploy create-yookassa-payment
+   supabase functions deploy yookassa-webhook
+   ```
+
+5. Настройте HTTP-уведомления в ЮKassa (личный кабинет → Интеграция → HTTP-уведомления):
+   - URL: `https://<project-ref>.supabase.co/functions/v1/yookassa-webhook`
+   - Событие: `payment.succeeded`
+   - Метод аутентификации: HTTP Basic Auth (настройка webhook через личный кабинет).
+   Требования и формат webhook см. в документации: [Входящие уведомления ЮKassa](https://yookassa.ru/developers/using-api/webhooks), [HTTP-уведомления в личном кабинете](https://yookassa.ru/my/merchant/integration/http-notifications).
 
 ### 5. Auth
 

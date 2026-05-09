@@ -30,6 +30,14 @@ export interface PhotoAnalysis {
   style_tips: string[]
 }
 
+export interface AnalysisQuota {
+  used: number
+  limit_count: number | null
+  remaining: number | null
+  plan_code: string
+  period_yyyymm: number
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -120,6 +128,132 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+      }
+      billing_plan_limits: {
+        Row: {
+          plan_code: string
+          analysis_limit_monthly: number | null
+          updated_at: string
+        }
+        Insert: {
+          plan_code: string
+          analysis_limit_monthly?: number | null
+          updated_at?: string
+        }
+        Update: {
+          plan_code?: string
+          analysis_limit_monthly?: number | null
+          updated_at?: string
+        }
+      }
+      billing_subscriptions: {
+        Row: {
+          user_id: string
+          plan_code: string
+          status: 'active' | 'past_due' | 'canceled'
+          provider: string | null
+          provider_subscription_id: string | null
+          current_period_start: string | null
+          current_period_end: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          plan_code?: string
+          status?: 'active' | 'past_due' | 'canceled'
+          provider?: string | null
+          provider_subscription_id?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          plan_code?: string
+          status?: 'active' | 'past_due' | 'canceled'
+          provider?: string | null
+          provider_subscription_id?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      usage_analytics_monthly: {
+        Row: {
+          user_id: string
+          period_yyyymm: number
+          used_count: number
+          limit_count: number | null
+          plan_code: string
+          updated_at: string
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          period_yyyymm: number
+          used_count?: number
+          limit_count?: number | null
+          plan_code: string
+          updated_at?: string
+          created_at?: string
+        }
+        Update: {
+          user_id?: string
+          period_yyyymm?: number
+          used_count?: number
+          limit_count?: number | null
+          plan_code?: string
+          updated_at?: string
+          created_at?: string
+        }
+      }
+      billing_payment_events: {
+        Row: {
+          payment_id: string
+          event_name: string
+          payload: Json
+          created_at: string
+        }
+        Insert: {
+          payment_id: string
+          event_name: string
+          payload: Json
+          created_at?: string
+        }
+        Update: {
+          payment_id?: string
+          event_name?: string
+          payload?: Json
+          created_at?: string
+        }
+      }
+    }
+    Functions: {
+      consume_analysis_credit: {
+        Args: Record<string, never>
+        Returns: AnalysisQuota[]
+      }
+      get_analysis_quota: {
+        Args: Record<string, never>
+        Returns: AnalysisQuota[]
+      }
+      get_public_session: {
+        Args: {
+          p_token: string
+        }
+        Returns: Json
+      }
+      submit_rating: {
+        Args: {
+          p_token: string
+          p_photo_id: string
+          p_fingerprint: string
+          p_rating: number
+        }
+        Returns: Json
       }
     }
   }

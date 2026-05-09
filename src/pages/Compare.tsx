@@ -11,6 +11,7 @@ import { OccasionPicker } from '@/components/analysis/OccasionPicker'
 import { BackgroundPicker } from '@/components/compare/BackgroundPicker'
 import { CollageExport } from '@/components/share/CollageExport'
 import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
 import { useSession, usePhotos, useUpdateSession, useUploadPhoto, MAX_PHOTOS } from '@/hooks/usePhotoSession'
 import { supabase } from '@/integrations/supabase/client'
 import { useOutfitAnalysis } from '@/hooks/useOutfitAnalysis'
@@ -26,14 +27,14 @@ export function Compare() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { t } = useLanguage()
-  const { viewMode, setViewMode, showNormalized, toggleNormalized, sideBySideIndex, setSideBySideIndex } = useCompareMode()
+  const { viewMode, setViewMode, showNormalized, toggleNormalized, sideBySideIndex } = useCompareMode()
 
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const { data: session, isLoading: sessionLoading } = useSession(id)
   const { data: photos, isLoading: photosLoading } = usePhotos(id)
   const updateSession = useUpdateSession(id)
-  const { analyzeOutfits } = useOutfitAnalysis()
+  const { analyzeOutfits, getAnalysisQuota, createUpgradePayment } = useOutfitAnalysis()
   const { normalizePhoto } = usePhotoNormalization()
   const uploadPhoto = useUploadPhoto(user?.id, id)
 
@@ -43,6 +44,8 @@ export function Compare() {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const [normalizing, setNormalizing] = useState(false)
   const [normalizeProgress, setNormalizeProgress] = useState(0)
+  const [quota, setQuota] = useState<{ used: number; limit_count: number | null; remaining: number | null } | null>(null)
+  const [upgradePending, setUpgradePending] = useState(false)
 
   const photosList = photos ?? []
   const isLoading = sessionLoading || photosLoading
@@ -71,6 +74,26 @@ export function Compare() {
     }
   }, [sideBySideIndex, viewMode])
 
+  useEffect(() => {
+    if (!user) return
+    let mounted = true
+    getAnalysisQuota()
+      .then((row) => {
+        if (!mounted) return
+        setQuota({
+          used: row.used,
+          limit_count: row.limit_count,
+          remaining: row.remaining,
+        })
+      })
+      .catch(() => {
+        // Keep UI usable even if quota endpoint temporarily fails.
+      })
+    return () => {
+      mounted = false
+    }
+  }, [user?.id])
+
   const handleCarouselSlide = useCallback((idx: number) => {
     setCurrentPhotoIndex(idx)
   }, [])
@@ -81,7 +104,6 @@ export function Compare() {
 
   const addPhotoRef = useRef<HTMLInputElement>(null)
   const canAddMore = photosList.length < MAX_PHOTOS
-  const allHaveProcessed = photosList.length > 0 && photosList.every((p) => p.processed_photo_url)
 
   async function handleAddPhotos(files: FileList | null) {
     if (!files?.length || !id) return
@@ -148,6 +170,13 @@ export function Compare() {
         lang,
         occasion
       )
+      if (result.quota) {
+        setQuota({
+          used: result.quota.used,
+          limit_count: result.quota.limit_count,
+          remaining: result.quota.remaining,
+        })
+      }
       await updateSession.mutateAsync({
         status: 'analyzed',
         best_photo_id: photosList[result.best_index]?.id ?? null,
@@ -199,9 +228,29 @@ export function Compare() {
       await queryClient.refetchQueries({ queryKey: ['session', id] })
       toast.success('Анализ завершён')
     } catch (e) {
+      const maybeQuota = e as Error & { code?: string; quota?: { used?: number; limit?: number | null; remaining?: number | null } }
+      if (maybeQuota.code === 'LIMIT_REACHED' && maybeQuota.quota) {
+        setQuota({
+          used: maybeQuota.quota.used ?? 0,
+          limit_count: maybeQuota.quota.limit ?? null,
+          remaining: maybeQuota.quota.remaining ?? 0,
+        })
+      }
       showErrorToast(e, 'Ошибка анализа', 'Compare.handleAnalyze')
     } finally {
       setAnalyzing(false)
+    }
+  }
+
+  async function handleUpgradeClick() {
+    setUpgradePending(true)
+    try {
+      const { confirmationUrl } = await createUpgradePayment()
+      window.location.href = confirmationUrl
+    } catch (e) {
+      showErrorToast(e, 'Ошибка перехода к оплате', 'Compare.handleUpgradeClick')
+    } finally {
+      setUpgradePending(false)
     }
   }
 
@@ -256,6 +305,13 @@ export function Compare() {
 
         {hasAtLeastOnePhoto && (
           <div className="flex flex-wrap gap-2">
+            {quota && (
+              <Badge variant="secondary" className="h-10 px-3 text-sm">
+                {quota.limit_count === null
+                  ? `Безлимит • использовано ${quota.used}`
+                  : `Анализы: ${quota.used}/${quota.limit_count} • осталось ${quota.remaining ?? 0}`}
+              </Badge>
+            )}
             <Button variant="outline" onClick={() => navigate('/sessions')}>
               <List className="mr-2 h-4 w-4" />
               {t('nav.sessions')}
@@ -286,6 +342,16 @@ export function Compare() {
                 </>
               ) : (
                 t('compare.analyze')
+              )}
+            </Button>
+            <Button variant="outline" onClick={handleUpgradeClick} disabled={upgradePending}>
+              {upgradePending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Upgrade...
+                </>
+              ) : (
+                'Upgrade'
               )}
             </Button>
             <OccasionPicker
