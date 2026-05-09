@@ -7,3 +7,8 @@ dist/
 tsconfig.tsbuildinfo
 supabase/.temp/
 test/
+test*
+Landing/
+Landing2/
+doc/
+y-kassa/
