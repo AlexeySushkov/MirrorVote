@@ -1,6 +1,5 @@
 import { Images, Trophy } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Toggle } from '@/components/ui/toggle'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { CompareViewMode } from '@/hooks/useCompareMode'
 

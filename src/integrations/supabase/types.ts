@@ -42,6 +42,7 @@ export interface Database {
   public: {
     Tables: {
       mirror_sessions: {
+        Relationships: []
         Row: {
           id: string
           user_id: string
@@ -83,6 +84,7 @@ export interface Database {
         }
       }
       mirror_photos: {
+        Relationships: []
         Row: {
           id: string
           session_id: string
@@ -130,6 +132,7 @@ export interface Database {
         }
       }
       billing_plan_limits: {
+        Relationships: []
         Row: {
           plan_code: string
           analysis_limit_monthly: number | null
@@ -147,6 +150,7 @@ export interface Database {
         }
       }
       billing_subscriptions: {
+        Relationships: []
         Row: {
           user_id: string
           plan_code: string
@@ -182,6 +186,7 @@ export interface Database {
         }
       }
       usage_analytics_monthly: {
+        Relationships: []
         Row: {
           user_id: string
           period_yyyymm: number
@@ -211,6 +216,7 @@ export interface Database {
         }
       }
       billing_payment_events: {
+        Relationships: []
         Row: {
           payment_id: string
           event_name: string
@@ -231,6 +237,9 @@ export interface Database {
         }
       }
     }
+    Views: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
     Functions: {
       consume_analysis_credit: {
         Args: Record<string, never>

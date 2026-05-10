@@ -67,7 +67,7 @@ export function VotePage() {
       if (!result) {
         setError(t('vote.invalidLink'))
       } else {
-        setData(result as PublicSessionData)
+        setData(result as unknown as PublicSessionData)
       }
     } catch (e) {
       console.error('VotePage fetch error:', e)

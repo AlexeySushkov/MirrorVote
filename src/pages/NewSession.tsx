@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, List } from 'lucide-react'
+import { List } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -34,7 +34,7 @@ export function NewSession() {
   const createSession = useCreateSession(user?.id)
   const uploadPhoto = useUploadPhoto(user?.id, sessionId || undefined)
   const updateSession = useUpdateSession(sessionId || undefined)
-  const deletePhoto = useDeletePhoto(sessionId)
+  const deletePhoto = useDeletePhoto(sessionId ?? undefined)
   const { normalizePhoto } = usePhotoNormalization()
 
   const { data: photos } = usePhotos(sessionId ?? undefined)
@@ -68,6 +68,7 @@ export function NewSession() {
     }
   }
 
+  // @ts-ignore: kept for upcoming normalize button wiring
   async function handleNormalize() {
     if (!user || !sessionId || photosList.length < MIN_PHOTOS) {
       showErrorToast(`Нужно минимум ${MIN_PHOTOS} фото`, `Нужно минимум ${MIN_PHOTOS} фото`, 'NewSession.handleNormalize.validation')

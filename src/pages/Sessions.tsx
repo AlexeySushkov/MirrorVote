@@ -27,18 +27,18 @@ export function Sessions() {
     if (!user?.id) return
     let mounted = true
 
-    supabase
-      .rpc('get_analysis_quota')
-      .then(({ data, error }) => {
+    supabase.rpc('get_analysis_quota').then(
+      ({ data, error }) => {
         if (!mounted || error) return
         const row = Array.isArray(data) ? data[0] : data
         const planCode = String(row?.plan_code ?? 'free').toLowerCase()
         setPlanLabel(planCode === 'pro' ? 'Pro' : 'Free')
         setRemaining(typeof row?.remaining === 'number' ? row.remaining : null)
-      })
-      .catch(() => {
+      },
+      () => {
         // Keep default Free if quota fetch fails.
-      })
+      },
+    )
 
     return () => {
       mounted = false
