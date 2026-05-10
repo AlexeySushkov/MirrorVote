@@ -10,6 +10,12 @@
 
 ## История изменений
 
+### 2026-05-10
+
+- **Совместимость с supabase-js 2.98** — `Database` приведён к `GenericSchema`: добавлены `Relationships: []` всем таблицам, а также `Views`, `Enums`, `CompositeTypes` в `public`. Без этого RPC и `.update()` сваливались в тип `never` и блокировали `tsc`.
+- **Чистка билда** — убраны неиспользуемые импорты (`Toggle`, `Loader2`); `useDeletePhoto` теперь принимает `string | undefined` (`sessionId ?? undefined`); в `Sessions.tsx` `.then().catch()` заменён на `.then(success, failure)`, т.к. supabase-js возвращает `PromiseLike` без `.catch`; в `VotePage.tsx` каст `Json` → `PublicSessionData` через `unknown`.
+- **Сборка `dist/` в репо** — `dist/` убран из `.gitignore`, готовый production-бандл коммитится в репозиторий для прямой раздачи со статического хостинга без CI.
+
 ### 2026-05-09
 
 - **Монетизация и лимиты** — добавлены таблицы `billing_plan_limits`, `billing_subscriptions`, `usage_analytics_monthly` и RPC `consume_analysis_credit` / `get_analysis_quota` для модели free/pro с лимитом бесплатных анализов
