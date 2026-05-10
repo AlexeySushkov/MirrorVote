@@ -1,9 +1,16 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from './types'
 
+type AppConfig = { SUPABASE_URL?: string; SUPABASE_KEY?: string }
+const runtime: AppConfig =
+  (window as unknown as { __APP_CONFIG__?: AppConfig }).__APP_CONFIG__ ?? {}
+
 const env = (import.meta as { env: Record<string, string> }).env
-const supabaseUrl = env.VITE_SUPABASE_URL ?? ''
-const supabaseAnonKey = env.VITE_SUPABASE_PUBLISHABLE_KEY ?? env.VITE_SUPABASE_ANON_KEY ?? ''
+
+// Runtime config (config.js on server) wins over build-time .env.
+const supabaseUrl = runtime.SUPABASE_URL || env.VITE_SUPABASE_URL || ''
+const supabaseAnonKey =
+  runtime.SUPABASE_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY || ''
 
 const isLikelyValidSupabaseKey = (key: string) => {
   // Supabase can use legacy JWT anon key (starts with eyJ...) or modern publishable key (starts with sb_publishable_)
@@ -12,7 +19,7 @@ const isLikelyValidSupabaseKey = (key: string) => {
   return false
 }
 
-// Placeholder for dev without .env — auth will fail but app won't crash
+// Placeholder for dev without config — auth will fail but app won't crash
 const url = supabaseUrl || 'https://placeholder.supabase.co'
 const key = supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder'
 
@@ -21,4 +28,4 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(url, ke
 export const isSupabaseConfigured = Boolean(supabaseUrl && isLikelyValidSupabaseKey(supabaseAnonKey))
 
 export const supabaseConfigError =
-  'Supabase не настроен или ключ выглядит некорректным. Проверьте VITE_SUPABASE_URL и полный VITE_SUPABASE_PUBLISHABLE_KEY (или VITE_SUPABASE_ANON_KEY) в .env, затем перезапустите npm run dev.'
+  'Supabase не настроен или ключ выглядит некорректным. Заполните SUPABASE_URL и SUPABASE_KEY в /app/config.js на сервере (или VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY в .env для локальной разработки), затем обновите страницу.'
