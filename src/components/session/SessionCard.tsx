@@ -38,7 +38,7 @@ export function SessionCard({ session, onClick, selectable, selected, onSelectCh
         )
         queryClient.invalidateQueries({ queryKey: ['sessions'] })
       }
-      const url = `${window.location.origin}/v/${token}`
+      const url = `${window.location.origin}/app/v/${token}`
       await navigator.clipboard.writeText(url)
       toast.success(t('vote.linkCopied'))
     } catch (err) {

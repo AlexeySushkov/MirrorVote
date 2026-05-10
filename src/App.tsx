@@ -34,7 +34,7 @@ export function App() {
       <LanguageProvider>
         <AuthProvider>
           <TooltipProvider>
-            <BrowserRouter>
+            <BrowserRouter basename="/app">
               <div className="min-h-screen bg-background">
                 <Routes>
                   <Route path="/" element={<Index />} />
