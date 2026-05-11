@@ -9,6 +9,6 @@
   <path d="M14 34 L27 47 L51 19"
         fill="none" stroke="#fff" stroke-width="8"
         stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M52 7 L53.65 11.73 L58.66 11.84 L54.66 14.87 L56.11 19.66 L52 16.8 L47.89 19.66 L49.34 14.87 L45.34 11.84 L50.35 11.73 Z"
+  <path d="M12 7 L13.65 11.73 L18.66 11.84 L14.66 14.87 L16.11 19.66 L12 16.8 L7.89 19.66 L9.34 14.87 L5.34 11.84 L10.35 11.73 Z"
         fill="#F0A91F"/>
 </svg>
