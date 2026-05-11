@@ -10,6 +10,15 @@
 
 ## История изменений
 
+### 2026-05-12
+
+- **Пакеты примерок** — заменена модель Pro-подписки на разовые пакеты: 5/10/20 примерок без срока давности. При исчерпании пользователь возвращается на free (3/мес). Новая таблица `user_credits`, функция `add_user_credits()`, обновлены `consume_analysis_credit` и `get_analysis_quota`
+- **Иконка шапки** — вместо иконки `Shirt` (lucide) используется `favicon.svg`
+- **Кнопка покупки** — красная кнопка «Купить 5 примерок» рядом с плашкой Free вместо отдельного блока
+- **Проксирование Supabase через nginx** — все запросы (API, Auth, Storage, Edge Functions) идут через `mirror-vote.ru/supabase/` для обхода блокировок; CORS-заголовки добавляются nginx
+- **Фикс `crypto.randomUUID` в edge function** — метод вызывался без `this`-контекста при создании платежа YooKassa (`Illegal invocation`)
+- **Лимит free** — снижен с 5 до 3 примерок в месяц
+
 ### 2026-05-11
 
 - **Фикс загрузки фото** — `crypto.randomUUID` вызывался без `this`-контекста (ссылка извлекалась в переменную), что приводило к `TypeError: Illegal invocation` при добавлении любого фото в сессию. Метод теперь вызывается на самом `crypto`.
@@ -163,7 +172,9 @@ supabase db push
    | `OPENROUTER_IMAGE_MODEL` | нет | normalize-photo | Модель для Simple Look (image-to-image). По умолчанию: `google/gemini-2.5-flash-image`. Важно: только модель с поддержкой вывода изображений |
    | `YOOKASSA_SHOP_ID` | да (для подписки) | create-yookassa-payment, yookassa-webhook | Shop ID из личного кабинета ЮKassa |
    | `YOOKASSA_SECRET_KEY` | да (для подписки) | create-yookassa-payment, yookassa-webhook | Secret key ЮKassa |
-   | `YOOKASSA_PRO_AMOUNT` | нет | create-yookassa-payment | Стоимость тарифа `pro` в RUB, по умолчанию `99.00` |
+   | `YOOKASSA_PACK_5_AMOUNT` | нет | create-yookassa-payment | Цена пакета 5 примерок в RUB, по умолчанию `99.00` |
+   | `YOOKASSA_PACK_10_AMOUNT` | нет | create-yookassa-payment | Цена пакета 10 примерок в RUB, по умолчанию `179.00` |
+   | `YOOKASSA_PACK_20_AMOUNT` | нет | create-yookassa-payment | Цена пакета 20 примерок в RUB, по умолчанию `299.00` |
    | `APP_URL` | да (для подписки) | create-yookassa-payment | Публичный URL приложения для `return_url` после оплаты |
    | `SUPABASE_URL` | — | все | Подставляется Supabase автоматически |
    | `SUPABASE_SERVICE_ROLE_KEY` | — | все | Подставляется Supabase автоматически |
