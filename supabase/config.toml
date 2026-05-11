@@ -21,3 +21,6 @@ enabled = true
 public = true
 file_size_limit = "10MB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/heic"]
+
+[functions.yookassa-webhook]
+verify_jwt = false

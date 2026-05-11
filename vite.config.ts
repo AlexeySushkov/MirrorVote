@@ -6,7 +6,7 @@ export default defineConfig({
   base: '/app/',
   plugins: [react()],
   server: {
-    allowedHosts: ['mirror-vote.ru', 'www.mirror-vote.ru'],
+    allowedHosts: ['mirror-vote.ru', 'www.mirror-vote.ru', 'mirrorvote.ru', 'www.mirrorvote.ru'],
   },
   resolve: {
     alias: {
