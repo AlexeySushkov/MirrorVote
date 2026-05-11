@@ -78,7 +78,7 @@ export function Sessions() {
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
           <h1 className="font-serif text-2xl font-semibold">{t('sessions.title')}</h1>
-          <Badge variant={planCode === 'credits' ? 'default' : 'secondary'}>
+          <Badge variant="secondary">
             {planCode === 'credits'
               ? `Осталось ${remaining ?? 0} примерок`
               : `Free • Осталось ${remaining ?? 0}`}

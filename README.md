@@ -146,6 +146,11 @@ supabase db push
 - **mirror_sessions** — сессии примерок (в т.ч. `share_token` для публичных ссылок)
 - **mirror_photos** — фотографии с параметрами нормализации и оценками AI
 - **mirror_votes** — голоса друзей (оценки 1–5 звёзд по каждому фото)
+- **billing_plan_limits** — лимиты анализов по тарифам
+- **billing_subscriptions** — подписки пользователей (история платежей)
+- **usage_analytics_monthly** — ежемесячное использование анализов
+- **billing_payment_events** — лог событий от YooKassa
+- **user_credits** — баланс купленных примерок (пакеты без срока)
 
 ### 3. Storage
 
@@ -212,27 +217,39 @@ supabase db push
 ```
 src/
 ├── main.tsx              # Точка входа
-├── App.tsx                # Роутинг и провайдеры
-├── pages/                 # Index, Auth, Sessions, NewSession, Compare, VotePage
+├── App.tsx               # Роутинг и провайдеры
+├── pages/                # Index, Auth, Sessions, NewSession, Compare, VotePage, NotFound
 ├── components/
-│   ├── ui/                # shadcn/ui
-│   ├── session/           # PhotoUploader, PhotoGrid, SessionCard
-│   ├── vote/              # StarRating (5 звёзд)
-│   ├── compare/           # SideBySide, CarouselView, OverlayView
-│   ├── analysis/          # OutfitScore, AIRecommendation
-│   └── share/             # CollageExport
-├── contexts/              # Auth, Language (ru/en)
-├── hooks/                 # usePhotoSession, useOutfitAnalysis
+│   ├── ui/               # shadcn/ui
+│   ├── layout/           # AppHeader
+│   ├── session/          # PhotoUploader, PhotoGrid, SessionCard
+│   ├── vote/             # StarRating (5 звёзд)
+│   ├── compare/          # CarouselView, PickBestView, PhotoCard
+│   ├── analysis/         # InlineVerdict, PhotoVerdict
+│   └── share/            # CollageExport
+├── contexts/             # AuthContext, LanguageContext (ru/en)
+├── hooks/                # usePhotoSession, useOutfitAnalysis, usePhotoNormalization,
+│                         # useCompareMode, use-mobile
 ├── integrations/supabase/ # client, types
-└── utils/                 # imageUtils, collageGenerator
+└── utils/                # imageUtils, collageGenerator, errorToast,
+                          # supabaseFunctionError, normalizationUtils, constants, id
 
 supabase/
 ├── migrations/
 │   ├── 001_initial.sql
-│   └── 004_voting_and_sharing.sql   # share_token, mirror_votes, RPC
+│   ├── 002_storage_policies.sql
+│   ├── 003_add_processed_photo_url.sql
+│   ├── 004_voting_and_sharing.sql    # share_token, mirror_votes, RPC
+│   ├── 005_add_session_background.sql
+│   ├── 006_billing_limits_and_subscription.sql
+│   ├── 007_fix_quota_period_ambiguity.sql
+│   └── 008_credit_packs.sql          # user_credits, пакеты примерок
 └── functions/
-    ├── normalize-photo/   # Simple Look: image-to-image + загрузка в Storage
-    └── analyze-outfits/  # AI-оценка всех нарядов
+    ├── normalize-photo/              # Simple Look: image-to-image + Storage
+    ├── analyze-outfits/             # AI-оценка нарядов + quota check
+    ├── create-yookassa-payment/     # Создание платежа (пакеты 5/10/20)
+    ├── yookassa-webhook/            # Пополнение user_credits после оплаты
+    └── cleanup-orphans/             # Очистка осиротевших файлов
 ```
 
 ## Маршруты
@@ -464,7 +481,7 @@ curl "https://ваш-проект.supabase.co/functions/v1/cleanup-orphans" \
 - [ ] **Оценка размера одежды** - по загруженному фото  
 
 ### Монетизация
-- [ ] **Лимиты и подписка** — бесплатно N анализов/месяц, платный план для безлимита
+- [x] **Пакеты примерок** — бесплатно 3 анализа/месяц; покупка пакетов 5/10/20 без срока давности
 
 ### Техническое
 - [ ] **Приватность Storage** — bucket `mirror_photos` публичный: любой с URL может скачать фото. Варианты: приватный bucket + signed URLs, или Edge Function для проверки прав перед отдачей файла
