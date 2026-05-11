@@ -460,6 +460,7 @@ curl "https://ваш-проект.supabase.co/functions/v1/cleanup-orphans" \
 - [ ] **Оптимизация изображений** — WebP, lazy loading, CDN
 - [ ] **Rate limiting** — защита edge-функций от злоупотреблений
 - [ ] **Автоудаление анонимов** — cron (pg_cron / GitHub Actions) для очистки старых анонимных сессий
+- [ ] **CI-деплой вместо коммита `dist/`** — GitHub Actions: на push в `main` запускать `npm run build` и `rsync dist/` на Selectel по SSH; после этого убрать `dist/` из репо и вернуть в `.gitignore`
 - [ ] **E2E-тесты** — Playwright для основных сценариев
 - [ ] **i18n** — вынести переводы в JSON, добавить языки
 
