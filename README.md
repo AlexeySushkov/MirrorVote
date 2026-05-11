@@ -310,6 +310,174 @@ supabase/
 - **Обработка ошибок** — при сбое нормализации фото получает `error`, сессия откатывается в `ready`
 - **Повторная нормализация** — при Simple Look в Compare сессия переходит в `normalizing` → `ready` (анализ нужно запустить заново)
 
+## Деплой на сервере
+
+Сервер: Selectel VPS, nginx, домен `mirror-vote.ru`. SPA раздаётся из `/var/www/mirror-vote-app-dist/`, все запросы к Supabase проксируются через nginx.
+
+### 1. Сборка
+
+```bash
+npm run build
+```
+
+Собранный бандл появится в `dist/`.
+
+### 2. Конфигурация бандла (`config.js`)
+
+После деплоя на сервере отредактировать `/var/www/mirror-vote-app-dist/config.js`:
+
+```js
+window.__APP_CONFIG__ = {
+  SUPABASE_URL: 'https://mirror-vote.ru/supabase',  // nginx-прокси
+  SUPABASE_KEY: 'eyJ...',  // anon/publishable ключ из Supabase Dashboard → API Keys
+}
+```
+
+> Файл не пересобирается при изменении — достаточно отредактировать его на сервере и обновить страницу в браузере.
+
+### 3. Копирование файлов на сервер
+
+```bash
+rsync -avz --delete dist/ user@mirror-vote.ru:/var/www/mirror-vote-app-dist/
+```
+
+После копирования восстановить `config.js` (rsync перезапишет его пустым из репо):
+
+```bash
+ssh user@mirror-vote.ru "nano /var/www/mirror-vote-app-dist/config.js"
+```
+
+### 4. Конфигурация nginx
+
+Файл: `/etc/nginx/sites-enabled/mirror-vote.ru.conf`
+
+```nginx
+# HTTP → HTTPS редирект
+server {
+    listen 80;
+    server_name mirror-vote.ru www.mirror-vote.ru;
+    return 301 https://mirror-vote.ru$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name mirror-vote.ru www.mirror-vote.ru;
+
+    ssl_certificate     /etc/letsencrypt/live/mirror-vote.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/mirror-vote.ru/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    client_max_body_size 20m;
+    charset utf-8;
+    root /var/www/landing;
+    index index.html;
+
+    access_log /var/log/nginx/mirror-vote.ru_access.log;
+    error_log  /var/log/nginx/mirror-vote.ru_error.log;
+
+    # Статические файлы (лендинг + ассеты)
+    location ~* \.(jpg|jpeg|gif|png|css|js|webp|svg|ico|woff2?)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+    }
+
+    # Прокси Supabase (API, Auth, Storage, Edge Functions)
+    # ^~ отключает regex-матчинг после совпадения префикса
+    location ^~ /supabase/ {
+        proxy_pass https://<project-ref>.supabase.co/;
+        proxy_ssl_server_name on;
+        proxy_set_header Host <project-ref>.supabase.co;
+        proxy_set_header Origin "";
+        proxy_set_header Referer "";
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_hide_header Access-Control-Allow-Origin;
+        proxy_hide_header Access-Control-Allow-Headers;
+        proxy_hide_header Access-Control-Allow-Methods;
+        proxy_hide_header Access-Control-Allow-Credentials;
+
+        add_header Access-Control-Allow-Origin "https://mirror-vote.ru" always;
+        add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Authorization, apikey, Content-Type, X-Client-Info, X-Supabase-Api-Version" always;
+        add_header Access-Control-Allow-Credentials "true" always;
+
+        if ($request_method = OPTIONS) {
+            add_header Access-Control-Allow-Origin "https://mirror-vote.ru";
+            add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS";
+            add_header Access-Control-Allow-Headers "Authorization, apikey, Content-Type, X-Client-Info, X-Supabase-Api-Version";
+            add_header Access-Control-Max-Age 3600;
+            return 204;
+        }
+    }
+
+    # Лендинг
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # SPA (React) на /app
+    location ^~ /app {
+        alias /var/www/mirror-vote-app-dist/;
+        try_files $uri $uri/ /app/index.html;
+    }
+
+    location = /app {
+        return 301 /app/;
+    }
+
+    # index.html без кеша — чтобы после деплоя браузер не использовал старую версию
+    location = /app/index.html {
+        alias /var/www/mirror-vote-app-dist/index.html;
+        add_header Cache-Control "no-cache, must-revalidate";
+        expires 0;
+    }
+}
+```
+
+### 5. Проверка и перезапуск nginx
+
+```bash
+# Проверить конфиг перед применением
+nginx -t
+
+# Применить изменения без разрыва соединений
+systemctl reload nginx
+
+# Полный перезапуск (если reload не помог)
+systemctl restart nginx
+```
+
+### 6. SSL-сертификат (Let's Encrypt)
+
+```bash
+certbot --nginx -d mirror-vote.ru -d www.mirror-vote.ru
+```
+
+Авторебью настраивается автоматически при установке certbot. Проверить:
+
+```bash
+systemctl status certbot.timer
+```
+
+### 7. Обновление приложения
+
+```bash
+# 1. Собрать локально
+npm run build
+
+# 2. Скопировать на сервер
+rsync -avz --delete dist/ user@mirror-vote.ru:/var/www/mirror-vote-app-dist/
+
+# 3. Восстановить config.js (rsync перезапишет его пустым)
+ssh user@mirror-vote.ru "nano /var/www/mirror-vote-app-dist/config.js"
+```
+
+> **Nginx перезапускать не нужно** — статические файлы читаются с диска при каждом запросе.
+
 ## Скрипты
 
 ```bash
