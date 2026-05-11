@@ -72,26 +72,16 @@ serve(async (req) => {
 
     const metadata = payment?.metadata ?? payload.object?.metadata ?? {}
     const userId = metadata?.user_id as string | undefined
-    const planCode = (metadata?.plan_code as string | undefined) ?? 'pro'
+    const packSize = parseInt((metadata?.pack_size as string | undefined) ?? '5', 10)
 
     if (!userId) {
       return new Response('OK', { status: 200 })
     }
 
-    const nowIso = new Date().toISOString()
-    const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-
-    await supabase
-      .from('billing_subscriptions')
-      .upsert({
-        user_id: userId,
-        plan_code: planCode,
-        status: 'active',
-        provider: 'yookassa',
-        provider_subscription_id: paymentId,
-        current_period_start: nowIso,
-        current_period_end: periodEnd,
-      } as never, { onConflict: 'user_id' })
+    await supabase.rpc('add_user_credits', {
+      p_user_id: userId,
+      p_credits: packSize,
+    } as never)
 
     return new Response('OK', { status: 200 })
   } catch (error) {

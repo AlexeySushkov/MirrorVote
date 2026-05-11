@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { LogOut, Shirt, AlertTriangle } from 'lucide-react'
+import { LogOut, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -65,7 +65,7 @@ export function AppHeader() {
         )}
         <div className="container flex h-14 items-center justify-between px-4">
           <Link to="/sessions" className="flex items-center gap-2 font-serif text-lg font-semibold">
-            <Shirt className="h-5 w-5" />
+            <img src="/app/favicon.svg" alt="" className="h-5 w-5" />
             {t('app.title')}
           </Link>
           <div className="flex items-center gap-2">

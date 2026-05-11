@@ -31,9 +31,18 @@ export function useOutfitAnalysis() {
     return row ?? { used: 0, limit_count: null, remaining: null, plan_code: 'free', period_yyyymm: 0 }
   }
 
-  async function createUpgradePayment(): Promise<CreatePaymentResult> {
+  async function createUpgradePayment(packSize: 5 | 10 | 20 = 5): Promise<CreatePaymentResult> {
+    const { data: { session } } = await supabase.auth.getSession()
+    let token = session?.access_token
+    if (!token) {
+      const { data: refreshed } = await supabase.auth.refreshSession()
+      token = refreshed.session?.access_token
+    }
+    if (!token) throw new Error('Сессия истекла. Войдите заново.')
+
     const { data, error } = await supabase.functions.invoke('create-yookassa-payment', {
-      body: { planCode: 'pro' },
+      headers: { Authorization: `Bearer ${token}` },
+      body: { packSize },
     })
     if (error) throw await toFunctionError(error)
     if (data?.error) throw new Error(String(data.error))

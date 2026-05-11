@@ -19,9 +19,9 @@ export function Sessions() {
   const deleteSessions = useDeleteSessions(user?.id)
   const { createUpgradePayment } = useOutfitAnalysis()
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [planLabel, setPlanLabel] = useState<'Free' | 'Pro'>('Free')
+  const [planCode, setPlanCode] = useState<string>('free')
   const [remaining, setRemaining] = useState<number | null>(null)
-  const [upgradePending, setUpgradePending] = useState(false)
+  const [packPending, setPackPending] = useState<number | null>(null)
 
   useEffect(() => {
     if (!user?.id) return
@@ -31,13 +31,10 @@ export function Sessions() {
       ({ data, error }) => {
         if (!mounted || error) return
         const row = Array.isArray(data) ? data[0] : data
-        const planCode = String(row?.plan_code ?? 'free').toLowerCase()
-        setPlanLabel(planCode === 'pro' ? 'Pro' : 'Free')
+        setPlanCode(String(row?.plan_code ?? 'free').toLowerCase())
         setRemaining(typeof row?.remaining === 'number' ? row.remaining : null)
       },
-      () => {
-        // Keep default Free if quota fetch fails.
-      },
+      () => {},
     )
 
     return () => {
@@ -45,16 +42,15 @@ export function Sessions() {
     }
   }, [user?.id])
 
-  const handleUpgradeClick = async () => {
-    if (planLabel === 'Pro') return
-    setUpgradePending(true)
+  const handleBuyPack = async (packSize: 5 | 10 | 20) => {
+    setPackPending(packSize)
     try {
-      const { confirmationUrl } = await createUpgradePayment()
+      const { confirmationUrl } = await createUpgradePayment(packSize)
       window.location.href = confirmationUrl
     } catch (e) {
-      showErrorToast(e, 'Ошибка перехода к оплате', 'Sessions.handleUpgradeClick')
+      showErrorToast(e, 'Ошибка перехода к оплате', 'Sessions.handleBuyPack')
     } finally {
-      setUpgradePending(false)
+      setPackPending(null)
     }
   }
 
@@ -79,19 +75,21 @@ export function Sessions() {
 
   return (
     <div className="container max-w-2xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
           <h1 className="font-serif text-2xl font-semibold">{t('sessions.title')}</h1>
-          <Badge variant="secondary">
-            {planLabel === 'Pro' ? 'Pro • Безлимит' : `Free • Осталось ${remaining ?? 0}`}
+          <Badge variant={planCode === 'credits' ? 'default' : 'secondary'}>
+            {planCode === 'credits'
+              ? `Осталось ${remaining ?? 0} примерок`
+              : `Free • Осталось ${remaining ?? 0}`}
           </Badge>
           <Button
-            variant={planLabel === 'Pro' ? 'secondary' : 'destructive'}
+            variant="destructive"
             size="sm"
-            onClick={handleUpgradeClick}
-            disabled={upgradePending || planLabel === 'Pro'}
+            onClick={() => handleBuyPack(5)}
+            disabled={packPending !== null}
           >
-            {upgradePending ? 'Redirecting...' : 'Upgrade to Pro'}
+            {packPending !== null ? '...' : 'Купить 5 примерок'}
           </Button>
         </div>
         <div className="flex gap-2">

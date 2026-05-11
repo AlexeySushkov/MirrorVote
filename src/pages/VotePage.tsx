@@ -105,7 +105,7 @@ export function VotePage() {
       if (rpcError) throw rpcError
       setMyRatings((prev) => ({ ...prev, [photoId]: rating }))
       toast.success(t('vote.thanks'))
-      await fetchData(false)
+      fetchData(false)
     } catch (e) {
       console.error('submit_rating error:', e)
       toast.error(t('vote.error'))
