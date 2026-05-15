@@ -34,7 +34,7 @@ export function BeforeAfterView({
 
   return (
     <div className="space-y-4">
-      <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted group">
+      <div className="relative aspect-[3/4] max-h-[calc(100svh-22rem)] rounded-xl overflow-hidden bg-muted group">
         <img
           src={photo.photo_url}
           alt={`${photo.original_filename} original`}
