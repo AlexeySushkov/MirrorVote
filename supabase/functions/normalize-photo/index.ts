@@ -166,6 +166,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         processedPhotoUrl,
+        processedStoragePath,
         promptVersion: PROMPT_VERSION,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -35,8 +35,10 @@ export function usePhotoNormalization() {
     if (error) throw await toFunctionError(error)
     if (data?.error) throw new Error(data.error)
 
-    const processedPhotoUrl = data?.processedPhotoUrl
-    if (!processedPhotoUrl) throw new Error('No processed photo URL returned')
+    const processedStoragePath = data?.processedStoragePath
+    if (!processedStoragePath) throw new Error('No processed photo path returned')
+    const { data: urlData } = supabase.storage.from('mirror_photos').getPublicUrl(processedStoragePath)
+    const processedPhotoUrl = urlData.publicUrl
 
     await supabase
       .from('mirror_photos')
