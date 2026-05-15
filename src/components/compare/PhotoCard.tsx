@@ -23,7 +23,7 @@ export function PhotoCard({ photo, showNormalized, isBest, className, onPrev, on
 
   return (
     <div className={cn('relative rounded-xl overflow-hidden bg-muted group', className)}>
-      <div className="aspect-[3/4] max-h-[calc(100svh-22rem)] relative">
+      <div className="aspect-[3/4] max-h-[calc(100svh-26rem)] relative">
         <img
           key={imgUrl}
           src={imgUrl}
