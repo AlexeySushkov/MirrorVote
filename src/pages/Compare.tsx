@@ -111,11 +111,10 @@ export function Compare() {
         const { processedPhotoUrl } = await normalizePhoto(p.id, p.photo_url, urls, user.id, id, background, p.storage_path)
         failedPhotoId = null
         setNormalizeProgress(((i + 1) / needProcessing.length) * 100)
-        const urlWithBust = processedPhotoUrl + (processedPhotoUrl.includes('?') ? '&' : '?') + `t=${Date.now()}`
         queryClient.setQueryData(['photos', id], (old: typeof photosList | undefined) => {
           if (!old) return old
           return old.map((ph) =>
-            ph.id === p.id ? { ...ph, processed_photo_url: urlWithBust } : ph
+            ph.id === p.id ? { ...ph, processed_photo_url: processedPhotoUrl } : ph
           )
         })
       }
