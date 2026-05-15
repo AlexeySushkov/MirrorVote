@@ -28,7 +28,7 @@ export function PhotoCard({ photo, showNormalized, isBest, className, onPrev, on
           key={imgUrl}
           src={imgUrl}
           alt={photo.original_filename}
-          className="w-full h-full object-cover object-center"
+          className="w-full h-full object-contain"
         />
         {navigable && (
           <>
