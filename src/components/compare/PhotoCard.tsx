@@ -22,39 +22,37 @@ export function PhotoCard({ photo, showNormalized, isBest, className, onPrev, on
   const navigable = Boolean(onPrev || onNext)
 
   return (
-    <div className={cn('relative rounded-xl overflow-hidden bg-muted group', className)}>
-      <div className="aspect-[3/4] max-h-[calc(100svh-26rem)] relative">
-        <img
-          key={imgUrl}
-          src={imgUrl}
-          alt={photo.original_filename}
-          className="w-full h-full object-contain"
-        />
-        {navigable && (
-          <>
-            <button
-              type="button"
-              className="absolute inset-y-0 left-0 w-1/2 z-10 flex items-center justify-start pl-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={onPrev}
-              aria-label="Previous"
-            >
-              <span className="rounded-full bg-black/40 p-1">
-                <ChevronLeft className="h-5 w-5 text-white" />
-              </span>
-            </button>
-            <button
-              type="button"
-              className="absolute inset-y-0 right-0 w-1/2 z-10 flex items-center justify-end pr-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={onNext}
-              aria-label="Next"
-            >
-              <span className="rounded-full bg-black/40 p-1">
-                <ChevronRight className="h-5 w-5 text-white" />
-              </span>
-            </button>
-          </>
-        )}
-      </div>
+    <div className={cn('relative rounded-xl overflow-hidden bg-muted group mx-auto w-fit', className)}>
+      <img
+        key={imgUrl}
+        src={imgUrl}
+        alt={photo.original_filename}
+        className="block max-h-[calc(100svh-26rem)] max-w-full"
+      />
+      {navigable && (
+        <>
+          <button
+            type="button"
+            className="absolute inset-y-0 left-0 w-1/2 z-10 flex items-center justify-start pl-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={onPrev}
+            aria-label="Previous"
+          >
+            <span className="rounded-full bg-black/40 p-1">
+              <ChevronLeft className="h-5 w-5 text-white" />
+            </span>
+          </button>
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 w-1/2 z-10 flex items-center justify-end pr-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={onNext}
+            aria-label="Next"
+          >
+            <span className="rounded-full bg-black/40 p-1">
+              <ChevronRight className="h-5 w-5 text-white" />
+            </span>
+          </button>
+        </>
+      )}
       {isBest && (
         <Badge variant="accent" className="absolute top-2 left-2">
           ★ AI Pick

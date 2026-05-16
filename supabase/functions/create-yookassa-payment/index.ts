@@ -84,7 +84,7 @@ serve(async (req) => {
         type: 'redirect',
         return_url: `${appUrl}/sessions`,
       },
-      description: `MirrorVote ${packSize} примерок`,
+      description: `MirrorVote ${packSize} оценок`,
       metadata: {
         user_id: userData.user.id,
         pack_size: String(packSize),

@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS public.billing_plan_limits (
 
 INSERT INTO public.billing_plan_limits (plan_code, analysis_limit_monthly)
 VALUES
-  ('free', 5),
+  ('free', 3),
   ('pro', NULL)
 ON CONFLICT (plan_code) DO UPDATE
 SET analysis_limit_monthly = EXCLUDED.analysis_limit_monthly,

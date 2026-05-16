@@ -80,7 +80,7 @@ export function Sessions() {
           <h1 className="font-serif text-2xl font-semibold">{t('sessions.title')}</h1>
           <Badge variant="secondary">
             {planCode === 'credits'
-              ? `Осталось ${remaining ?? 0} примерок`
+              ? `Осталось ${remaining ?? 0} оценок`
               : `Free • Осталось ${remaining ?? 0}`}
           </Badge>
           <Button
@@ -89,7 +89,7 @@ export function Sessions() {
             onClick={() => handleBuyPack(5)}
             disabled={packPending !== null}
           >
-            {packPending !== null ? '...' : 'Купить 5 примерок'}
+            {packPending !== null ? '...' : 'Купить 5 оценок'}
           </Button>
         </div>
         <div className="flex gap-2">
