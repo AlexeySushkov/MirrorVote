@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Loader2, PlusCircle, List, ImagePlus, Eye } from 'lucide-react'
+import { Loader2, List, ImagePlus, Eye, Link2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CarouselView } from '@/components/compare/CarouselView'
 import { PickBestView } from '@/components/compare/PickBestView'
@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { toast } from 'sonner'
 import { showErrorToast } from '@/utils/errorToast'
+import { makeClientId } from '@/utils/id'
 import type { Photo } from '@/integrations/supabase/types'
 
 export function Compare() {
@@ -74,6 +75,27 @@ export function Compare() {
   const handleCarouselSlide = useCallback((idx: number) => {
     setCurrentPhotoIndex(idx)
   }, [])
+
+  const handleCopyVoteLink = async () => {
+    if (!session) return
+    try {
+      let token = session.share_token
+      if (!token) {
+        token = makeClientId().replace(/-/g, '').slice(0, 12)
+        await updateSession.mutateAsync({ share_token: token } as never)
+        queryClient.setQueryData(['session', id], (old: typeof session | undefined) =>
+          old ? { ...old, share_token: token } : old
+        )
+        queryClient.invalidateQueries({ queryKey: ['sessions'] })
+      }
+      const url = `${window.location.origin}/app/v/${token}`
+      await navigator.clipboard.writeText(url)
+      toast.success(t('vote.linkCopied'))
+    } catch (err) {
+      console.error('Copy vote link error:', err)
+      toast.error(t('vote.error'))
+    }
+  }
 
   const handlePickBestPhoto = useCallback((photo: Photo) => {
     setPickBestPhoto(photo)
@@ -258,10 +280,6 @@ export function Compare() {
               <List className="mr-2 h-4 w-4" />
               {t('nav.sessions')}
             </Button>
-            <Button variant="outline" onClick={() => navigate('/sessions/new')}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              {t('sessions.new')}
-            </Button>
             {canAddMore && (
               <Button
                 variant="outline"
@@ -315,6 +333,10 @@ export function Compare() {
               }}
               disabled={normalizing}
             />
+            <Button variant="outline" onClick={handleCopyVoteLink}>
+              <Link2 className="mr-2 h-4 w-4" />
+              {t('vote.copyLink')}
+            </Button>
             {hasPhotoPair && (
               <CollageExport photos={photosList} bestPhotoId={session.best_photo_id} />
             )}
