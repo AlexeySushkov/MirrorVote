@@ -68,7 +68,7 @@ serve(async (req) => {
       : 5
 
     const priceMap: Record<PackSize, string> = {
-      5:  Deno.env.get('YOOKASSA_PACK_5_AMOUNT')  ?? '99.00',
+      5:  Deno.env.get('YOOKASSA_PACK_5_AMOUNT')  ?? '50.00',
       10: Deno.env.get('YOOKASSA_PACK_10_AMOUNT') ?? '179.00',
       20: Deno.env.get('YOOKASSA_PACK_20_AMOUNT') ?? '299.00',
     }
