@@ -445,6 +445,14 @@ server {
         add_header Cache-Control "no-cache, must-revalidate";
         expires 0;
     }
+
+    # config.js — runtime-конфиг, меняется без пересборки, НЕ кэшировать
+    # ВАЖНО: этот блок должен быть ДО общего правила location ~* \.(js)$
+    location = /app/config.js {
+        alias /var/www/mirror-vote-app-dist/config.js;
+        add_header Cache-Control "no-cache, must-revalidate";
+        expires 0;
+    }
 }
 ```
 
