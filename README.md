@@ -10,6 +10,10 @@
 
 ## История изменений
 
+### 2026-05-18
+
+- **Фикс «column reference period_yyyymm is ambiguous»** — ошибка возникала при использовании бесплатной квоты: в функции `consume_analysis_credit` конструкция `ON CONFLICT (user_id, period_yyyymm)` была неоднозначна, так как `period_yyyymm` совпадает с выходной колонкой `RETURNS TABLE`. Заменено на `ON CONFLICT ON CONSTRAINT usage_analytics_monthly_pkey`. Миграция: `009_fix_credit_period_ambiguity.sql`
+
 ### 2026-05-17
 
 - **Переименование кнопки и плашки** — кнопка «Купить 5 оценок» переименована в «Купить 5 AI оценок»; плашка с остатком теперь отображает «Осталось X AI оценок» (и «Free • Осталось X AI оценок» для free-плана) — уточняет, что кредиты используются именно для AI-оценки
@@ -262,7 +266,8 @@ supabase/
 │   ├── 005_add_session_background.sql
 │   ├── 006_billing_limits_and_subscription.sql
 │   ├── 007_fix_quota_period_ambiguity.sql
-│   └── 008_credit_packs.sql          # user_credits, пакеты примерок
+│   ├── 008_credit_packs.sql          # user_credits, пакеты примерок
+│   └── 009_fix_credit_period_ambiguity.sql  # фикс ON CONFLICT ambiguity
 └── functions/
     ├── normalize-photo/              # Simple Look: image-to-image + Storage
     ├── analyze-outfits/             # AI-оценка нарядов + quota check

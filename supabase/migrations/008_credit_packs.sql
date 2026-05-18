@@ -4,7 +4,7 @@
 DROP FUNCTION IF EXISTS public.consume_analysis_credit();
 DROP FUNCTION IF EXISTS public.get_analysis_quota();
 
-CREATE TABLE public.user_credits (
+CREATE TABLE IF NOT EXISTS public.user_credits (
   user_id           UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   credits_remaining INTEGER     NOT NULL DEFAULT 0 CHECK (credits_remaining >= 0),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -12,6 +12,7 @@ CREATE TABLE public.user_credits (
 
 ALTER TABLE public.user_credits ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "user_credits_self" ON public.user_credits;
 CREATE POLICY "user_credits_self" ON public.user_credits
   FOR SELECT USING (auth.uid() = user_id);
 
