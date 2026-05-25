@@ -75,14 +75,18 @@ export function Sessions() {
 
   return (
     <div className="container max-w-2xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+        {/* Ряд 1: заголовок + бейдж */}
+        <div className="flex items-center gap-2 flex-wrap">
           <h1 className="font-serif text-2xl font-semibold">{t('sessions.title')}</h1>
           <Badge variant="secondary">
             {planCode === 'credits'
               ? `Осталось ${remaining ?? 0} AI оценок`
               : `Free • Осталось ${remaining ?? 0} AI оценок`}
           </Badge>
+        </div>
+        {/* Ряд 2: купить слева, действия справа */}
+        <div className="flex items-center justify-between sm:justify-end gap-2">
           <Button
             variant="destructive"
             size="sm"
@@ -91,25 +95,25 @@ export function Sessions() {
           >
             {packPending !== null ? '...' : 'Купить 5 AI оценок'}
           </Button>
-        </div>
-        <div className="flex gap-2">
-          {selected.size > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDeleteSelected}
-              disabled={deleteSessions.isPending}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              {t('sessions.deleteSelected')} ({selected.size})
+          <div className="flex gap-2">
+            {selected.size > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteSelected}
+                disabled={deleteSessions.isPending}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t('sessions.deleteSelected')} ({selected.size})
+              </Button>
+            )}
+            <Button asChild variant="outline">
+              <Link to="/sessions/new">
+                <Plus className="mr-2 h-4 w-4" />
+                {t('sessions.new')}
+              </Link>
             </Button>
-          )}
-          <Button asChild variant="outline">
-            <Link to="/sessions/new">
-              <Plus className="mr-2 h-4 w-4" />
-              {t('sessions.new')}
-            </Link>
-          </Button>
+          </div>
         </div>
       </div>
 
