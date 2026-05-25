@@ -8,7 +8,6 @@ import { PickBestView } from '@/components/compare/PickBestView'
 import { CompareToolbar } from '@/components/compare/CompareToolbar'
 import { InlineVerdict } from '@/components/analysis/InlineVerdict'
 import { OccasionPicker } from '@/components/analysis/OccasionPicker'
-import { BackgroundPicker } from '@/components/compare/BackgroundPicker'
 import { CollageExport } from '@/components/share/CollageExport'
 import { Progress } from '@/components/ui/progress'
 import { useSession, usePhotos, useUpdateSession, useUploadPhoto, MAX_PHOTOS } from '@/hooks/usePhotoSession'
@@ -40,7 +39,6 @@ export function Compare() {
 
   const [analyzing, setAnalyzing] = useState(false)
   const [occasionOpen, setOccasionOpen] = useState(false)
-  const [backgroundOpen, setBackgroundOpen] = useState(false)
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const [normalizing, setNormalizing] = useState(false)
   const [normalizeProgress, setNormalizeProgress] = useState(0)
@@ -118,62 +116,21 @@ export function Compare() {
     await queryClient.refetchQueries({ queryKey: ['photos', id] })
   }
 
-  async function handleClearLook(background: string) {
-    if (!user || !id || photosList.length === 0) return
-    setNormalizing(true)
-    setNormalizeProgress(0)
-    let failedPhotoId: string | null = null
-    try {
-      await updateSession.mutateAsync({ status: 'normalizing' as const } as never)
-      const urls = photosList.map((p) => p.photo_url)
-      const needProcessing = photosList
-      for (let i = 0; i < needProcessing.length; i++) {
-        const p = needProcessing[i]
-        failedPhotoId = p.id
-        const { processedPhotoUrl } = await normalizePhoto(p.id, p.photo_url, urls, user.id, id, background, p.storage_path)
-        failedPhotoId = null
-        setNormalizeProgress(((i + 1) / needProcessing.length) * 100)
-        queryClient.setQueryData(['photos', id], (old: typeof photosList | undefined) => {
-          if (!old) return old
-          return old.map((ph) =>
-            ph.id === p.id ? { ...ph, processed_photo_url: processedPhotoUrl } : ph
-          )
-        })
-      }
-      await updateSession.mutateAsync({ status: 'ready', background } as never)
-      if (!showNormalized) toggleNormalized()
-      toast.success(t('upload.clearLookDone'))
-    } catch (e) {
-      if (failedPhotoId) {
-        await supabase.from('mirror_photos').update({ status: 'error' }).eq('id', failedPhotoId)
-      }
-      await updateSession.mutateAsync({ status: 'ready' })
-      showErrorToast(e, 'Simple Look (AI) error', 'Compare.handleClearLook')
-    } finally {
-      setNormalizing(false)
-      setNormalizeProgress(0)
-    }
-  }
-
-  async function handleAnalyze(occasion: string) {
-    if (!hasAtLeastOnePhoto) {
-      showErrorToast('Нужно минимум 1 фото', 'Нужно минимум 1 фото', 'Compare.handleAnalyze.validation')
-      return
-    }
+  async function handleAnalyzePhotos(photosToAnalyze: typeof photosList, occasion: string) {
     setAnalyzing(true)
     try {
-      const lang = t('app.title').includes('Mirror') ? 'ru' : 'en'
+      const lang = 'ru'
       const result = await analyzeOutfits(
-        photosList.map((p) => p.processed_photo_url ?? p.photo_url),
+        photosToAnalyze.map((p) => p.processed_photo_url ?? p.photo_url),
         lang,
         occasion
       )
       await updateSession.mutateAsync({
         status: 'analyzed',
-        best_photo_id: photosList[result.best_index]?.id ?? null,
+        best_photo_id: photosToAnalyze[result.best_index]?.id ?? null,
         ai_recommendation: result.recommendation,
       } as never)
-      const analysisUpdates = photosList.map((p, i) => {
+      const analysisUpdates = photosToAnalyze.map((p, i) => {
         const a = result.photos[i]
         if (!a) return null
         const analysis = {
@@ -211,18 +168,72 @@ export function Compare() {
         return {
           ...old,
           status: 'analyzed' as const,
-          best_photo_id: photosList[result.best_index]?.id ?? null,
+          best_photo_id: photosToAnalyze[result.best_index]?.id ?? null,
           ai_recommendation: result.recommendation,
         }
       })
       await queryClient.refetchQueries({ queryKey: ['photos', id] })
       await queryClient.refetchQueries({ queryKey: ['session', id] })
-      toast.success('Анализ завершён')
+      toast.success('AI Review готов')
     } catch (e) {
-      showErrorToast(e, 'Ошибка анализа', 'Compare.handleAnalyze')
+      showErrorToast(e, 'Ошибка анализа', 'Compare.handleAnalyzePhotos')
     } finally {
       setAnalyzing(false)
     }
+  }
+
+  async function handleAiReview(occasion: string, withNormalize: boolean) {
+    if (!hasAtLeastOnePhoto) {
+      showErrorToast('Нужно минимум 1 фото', 'Нужно минимум 1 фото', 'Compare.handleAiReview.validation')
+      return
+    }
+
+    let photosToAnalyze = photosList
+
+    // Step 1: Normalize if checkbox is checked
+    if (withNormalize && user && id && photosList.length > 0) {
+      setNormalizing(true)
+      setNormalizeProgress(0)
+      let failedPhotoId: string | null = null
+      const updatedPhotos = [...photosList]
+      try {
+        await updateSession.mutateAsync({ status: 'normalizing' as const } as never)
+        const urls = photosList.map((p) => p.photo_url)
+        const background = occasion || 'Neutral'
+        for (let i = 0; i < photosList.length; i++) {
+          const p = photosList[i]
+          failedPhotoId = p.id
+          const { processedPhotoUrl } = await normalizePhoto(
+            p.id, p.photo_url, urls, user.id, id, background, p.storage_path
+          )
+          failedPhotoId = null
+          updatedPhotos[i] = { ...p, processed_photo_url: processedPhotoUrl }
+          setNormalizeProgress(((i + 1) / photosList.length) * 100)
+          queryClient.setQueryData(['photos', id], (old: typeof photosList | undefined) =>
+            old ? old.map((ph) => ph.id === p.id ? { ...ph, processed_photo_url: processedPhotoUrl } : ph) : old
+          )
+        }
+        await updateSession.mutateAsync({ status: 'ready', background } as never)
+        if (!showNormalized) toggleNormalized()
+        toast.success(t('upload.clearLookDone'))
+        photosToAnalyze = updatedPhotos
+      } catch (e) {
+        if (failedPhotoId) {
+          await supabase.from('mirror_photos').update({ status: 'error' }).eq('id', failedPhotoId)
+        }
+        await updateSession.mutateAsync({ status: 'ready' })
+        showErrorToast(e, 'AI Review error', 'Compare.handleAiReview.normalize')
+        setNormalizing(false)
+        setNormalizeProgress(0)
+        return
+      } finally {
+        setNormalizing(false)
+        setNormalizeProgress(0)
+      }
+    }
+
+    // Step 2: Analyze with (possibly updated) photos
+    await handleAnalyzePhotos(photosToAnalyze, occasion)
   }
 
   if (isLoading || !session) {
@@ -294,44 +305,25 @@ export function Compare() {
                 {t('upload.addMore')}
               </Button>
             )}
-            <Button variant="destructive" onClick={() => setOccasionOpen(true)} disabled={analyzing || !hasAtLeastOnePhoto}>
-              {analyzing ? (
+            <Button
+              variant="destructive"
+              onClick={() => setOccasionOpen(true)}
+              disabled={analyzing || normalizing || !hasAtLeastOnePhoto}
+            >
+              {(analyzing || normalizing) ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {t('compare.analyzing')}
                 </>
               ) : (
-                t('compare.analyze')
+                t('compare.aiReview')
               )}
             </Button>
             <OccasionPicker
               open={occasionOpen}
               onOpenChange={setOccasionOpen}
-              onSelect={handleAnalyze}
-              disabled={analyzing}
-            />
-            <Button
-              variant="destructive"
-              onClick={() => setBackgroundOpen(true)}
-              disabled={normalizing}
-            >
-              {normalizing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Simple Look (AI)...
-                </>
-              ) : (
-                t('compare.normalized')
-              )}
-            </Button>
-            <BackgroundPicker
-              open={backgroundOpen}
-              onOpenChange={setBackgroundOpen}
-              onSelect={(bg) => {
-                setBackgroundOpen(false)
-                handleClearLook(bg)
-              }}
-              disabled={normalizing}
+              onSelect={handleAiReview}
+              disabled={analyzing || normalizing}
             />
             <Button variant="outline" onClick={handleCopyVoteLink}>
               <Link2 className="mr-2 h-4 w-4" />
@@ -366,7 +358,7 @@ export function Compare() {
           <div className="space-y-1">
             <Progress value={normalizeProgress} />
             <p className="text-xs text-muted-foreground text-center">
-              Simple Look — {Math.round(normalizeProgress)}%
+              AI Review — {Math.round(normalizeProgress)}%
             </p>
           </div>
         )}

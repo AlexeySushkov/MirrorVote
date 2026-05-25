@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Briefcase, Heart, PartyPopper, Sun, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -13,7 +15,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 interface OccasionPickerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSelect: (occasion: string) => void
+  onSelect: (occasion: string, withNormalize: boolean) => void
   disabled?: boolean
 }
 
@@ -27,36 +29,60 @@ const PRESETS = [
 export function OccasionPicker({ open, onOpenChange, onSelect, disabled }: OccasionPickerProps) {
   const { t } = useLanguage()
   const [customValue, setCustomValue] = useState('')
+  const [withNormalize, setWithNormalize] = useState(true)
+
+  function resetState() {
+    setWithNormalize(true)
+    setCustomValue('')
+  }
+
+  function handleOpenChange(isOpen: boolean) {
+    if (!isOpen) resetState()
+    onOpenChange(isOpen)
+  }
 
   function handlePreset(key: string) {
-    onSelect(t(key))
+    onSelect(t(key), withNormalize)
     onOpenChange(false)
-    setCustomValue('')
+    resetState()
   }
 
   function handleCustom() {
     if (customValue.trim()) {
-      onSelect(customValue.trim())
+      onSelect(customValue.trim(), withNormalize)
       onOpenChange(false)
-      setCustomValue('')
+      resetState()
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t('compare.chooseOccasion')}</DialogTitle>
         </DialogHeader>
+
+        {/* Checkbox: normalize before rating */}
+        <div className="flex items-center gap-3 py-2 px-1 rounded-lg bg-muted/50 border mb-1">
+          <Checkbox
+            id="normalize-check"
+            checked={withNormalize}
+            onCheckedChange={(v) => setWithNormalize(Boolean(v))}
+            disabled={disabled}
+          />
+          <Label htmlFor="normalize-check" className="text-sm cursor-pointer leading-tight">
+            {t('compare.unifyLook')}
+          </Label>
+        </div>
 
         <Button
           variant="outline"
           className="w-full h-14 flex flex-col gap-1 mb-3"
           disabled={disabled}
           onClick={() => {
-            onSelect('')
+            onSelect('', withNormalize)
             onOpenChange(false)
-            setCustomValue('')
+            resetState()
           }}
         >
           <span className="text-sm font-medium">{t('compare.occasionNeutral')}</span>
@@ -100,7 +126,7 @@ export function OccasionPicker({ open, onOpenChange, onSelect, disabled }: Occas
           variant="outline"
           className="w-full"
           disabled={disabled}
-          onClick={() => onOpenChange(false)}
+          onClick={() => handleOpenChange(false)}
         >
           {t('compare.cancel')}
         </Button>

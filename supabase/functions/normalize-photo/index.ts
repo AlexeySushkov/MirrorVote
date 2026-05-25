@@ -12,29 +12,29 @@ interface NormalizeRequest {
   storagePath?: string
 }
 
-const PROMPT_VERSION = 'v5-background-picker'
+const PROMPT_VERSION = 'v6-remove-replace-bg'
 
 function buildBackgroundPrompt(background: string): string {
   const lower = background.toLowerCase()
   if (lower.includes('neutral') || lower.includes('нейтральн')) {
-    return 'Clean plain neutral background (white, light gray, or soft gradient).'
+    return 'Remove the original background entirely. Replace it with a clean plain neutral background (white, light gray, or soft gradient). The new background must be clearly different from the original.'
   }
   if (lower.includes('office') || lower.includes('офис')) {
-    return 'Professional office background: subtle office interior, blurred, neutral tones.'
+    return 'Remove the original background entirely. Replace it with a professional office background: subtle blurred office interior, neutral tones.'
   }
   if (lower.includes('date') || lower.includes('свидан')) {
-    return 'Romantic date setting: soft, warm background, restaurant or cozy interior vibe.'
+    return 'Remove the original background entirely. Replace it with a romantic date setting: soft warm background, restaurant or cozy interior vibe, slightly blurred.'
   }
   if (lower.includes('party') || lower.includes('вечеринк')) {
-    return 'Party or venue background: festive, dynamic atmosphere, blurred lights or venue setting.'
+    return 'Remove the original background entirely. Replace it with a festive party background: dynamic atmosphere, blurred venue lights or colorful setting.'
   }
   if (lower.includes('casual') || lower.includes('повседневн')) {
-    return 'Casual relaxed background: natural, everyday setting, soft and unobtrusive.'
+    return 'Remove the original background entirely. Replace it with a casual relaxed background: natural everyday setting, soft and unobtrusive.'
   }
-  return `Background: ${background}.`
+  return `Remove the original background entirely. Replace it with: ${background}.`
 }
 
-const BASE_PROMPT = `Professional fitting room photo edit. Keep the original faces exactly the same. Preserve identity, facial structure, skin texture, and expression. Do not regenerate or alter the faces. Faces must remain identical to the original image. Do not alter facial structure, eyes, nose, mouth, or skin. Studio lighting, even and flattering. Person fills the frame. Remove phone if visible. Pose: one arm down, one hand on hip, feet shoulder-width apart. Preserve clothing, colors and fabric texture. No extra accessories.`
+const BASE_PROMPT = `Professional fitting room photo edit. Your primary task: replace the background as instructed below. Keep the original person exactly the same — do not alter faces, skin, clothing, colors, or fabric texture. Preserve identity, facial structure, skin texture, and expression. Studio lighting, even and flattering. Person fills the frame. Remove phone if visible. Pose: one arm down, one hand on hip, feet shoulder-width apart. No extra accessories.`
 
 // Must use an image-capable model (e.g. gemini-2.5-flash-image). Do NOT fall back to OPENROUTER_MODEL
 // (gemini-2.5-flash) — it does not support image output and causes "No endpoints found" for modalities.
@@ -84,6 +84,10 @@ serve(async (req) => {
 
     const bgPrompt = background ? buildBackgroundPrompt(background) : 'Clean plain neutral background (white, light gray, or soft gradient).'
     const fullPrompt = `Edit this fitting room photo. ${BASE_PROMPT} ${bgPrompt}`
+
+    console.log('[normalize-photo] model:', OPENROUTER_IMAGE_MODEL)
+    console.log('[normalize-photo] imageUrl:', inputImageUrl)
+    console.log('[normalize-photo] prompt:', fullPrompt)
 
     const content: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
       {

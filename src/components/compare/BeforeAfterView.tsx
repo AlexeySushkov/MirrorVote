@@ -47,7 +47,7 @@ export function BeforeAfterView({
         >
           <img
             src={photo.processed_photo_url ?? photo.photo_url}
-            alt={`${photo.original_filename} Simple Look`}
+            alt={`${photo.original_filename} AI Review`}
             className="absolute inset-0 w-full h-full object-cover object-center"
           />
         </div>
@@ -86,7 +86,7 @@ export function BeforeAfterView({
           Original
         </div>
         <div className="absolute top-2 right-2 rounded bg-black/55 px-2 py-1 text-xs text-white pointer-events-none">
-          {hasProcessed ? 'Simple Look' : 'Simple Look (run first)'}
+          {hasProcessed ? 'AI Review' : 'AI Review (run first)'}
         </div>
         {photo.id === bestPhotoId && (
           <div className="absolute bottom-2 left-2 rounded bg-accent px-2 py-1 text-xs text-accent-foreground pointer-events-none">
@@ -105,7 +105,7 @@ export function BeforeAfterView({
           className="w-full"
         />
         <p className="text-xs text-muted-foreground text-center">
-          Move slider to compare original vs Simple Look
+          Move slider to compare original vs AI Review
         </p>
       </div>
 

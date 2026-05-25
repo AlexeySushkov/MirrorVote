@@ -32,8 +32,8 @@ const translations: Record<Language, Record<string, string>> = {
     'upload.minPhotos': 'Минимум 1 фото',
     'upload.maxPhotos': 'Максимум 6 фото',
     'upload.progress': 'Загрузка...',
-    'upload.normalize': 'Simple Look (AI)',
-    'upload.clearLookDone': 'Simple Look (AI) применён',
+    'upload.normalize': 'AI Review',
+    'upload.clearLookDone': 'AI Review применён',
     'upload.continue': 'Продолжить к сравнению',
     'compare.title': 'Сравнение',
     'compare.sideBySide': 'Бок о бок',
@@ -41,7 +41,7 @@ const translations: Record<Language, Record<string, string>> = {
     'compare.carousel': 'Карусель',
     'compare.overlay': 'Наложение',
     'compare.original': 'Оригинал',
-    'compare.normalized': 'Simple Look (AI)',
+    'compare.normalized': 'AI Review',
     'compare.backToLook': 'Вернуть Look',
     'compare.pickBest': 'Выбрать лучшую',
     'compare.eliminate': 'Убрать',
@@ -50,7 +50,9 @@ const translations: Record<Language, Record<string, string>> = {
     'compare.winner': 'Победитель!',
     'compare.photosLeft': 'Осталось фото',
     'compare.analyze': 'Оценить наряды (AI)',
-    'compare.analyzing': 'Анализ...',
+    'compare.aiReview': 'AI оценка',
+    'compare.unifyLook': 'Единый фон и поза',
+    'compare.analyzing': 'Оценка...',
     'compare.chooseOccasion': 'Для какого случая?',
     'compare.chooseBackground': 'Выберите фон',
     'compare.backgroundNeutral': 'Нейтральный',
@@ -119,8 +121,8 @@ const translations: Record<Language, Record<string, string>> = {
     'upload.minPhotos': 'Minimum 1 photo',
     'upload.maxPhotos': 'Maximum 6 photos',
     'upload.progress': 'Uploading...',
-    'upload.normalize': 'Simple Look (AI)',
-    'upload.clearLookDone': 'Simple Look (AI) applied',
+    'upload.normalize': 'AI Review',
+    'upload.clearLookDone': 'AI Review applied',
     'upload.continue': 'Continue to Compare',
     'compare.title': 'Compare',
     'compare.sideBySide': 'Side by Side',
@@ -128,7 +130,7 @@ const translations: Record<Language, Record<string, string>> = {
     'compare.carousel': 'Carousel',
     'compare.overlay': 'Overlay',
     'compare.original': 'Original',
-    'compare.normalized': 'Simple Look (AI)',
+    'compare.normalized': 'AI Review',
     'compare.backToLook': 'Back to Look',
     'compare.pickBest': 'Pick the Best',
     'compare.eliminate': 'Eliminate',
@@ -137,7 +139,9 @@ const translations: Record<Language, Record<string, string>> = {
     'compare.winner': 'Winner!',
     'compare.photosLeft': 'Photos left',
     'compare.analyze': 'Rate Outfits (AI)',
-    'compare.analyzing': 'Analyzing...',
+    'compare.aiReview': 'AI Review',
+    'compare.unifyLook': 'Unify background & pose',
+    'compare.analyzing': 'Reviewing...',
     'compare.chooseOccasion': 'What occasion?',
     'compare.chooseBackground': 'Choose background',
     'compare.backgroundNeutral': 'Neutral',
@@ -188,7 +192,7 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | null>(null)
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>('en')
+  const [language, setLanguage] = useState<Language>('ru')
 
   const t = useCallback(
     (key: string) => translations[language][key] ?? key,

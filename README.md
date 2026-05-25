@@ -1,6 +1,6 @@
 # MirrorVote — AI-помощник в примерочной
 
-Веб-приложение для сравнения нарядов из примерочной с помощью AI. Загрузите 1–6 фото, получите AI-обработку (Simple Look) и оценку нарядов с учётом выбранного случая.
+Веб-приложение для сравнения нарядов из примерочной с помощью AI. Загрузите 1–6 фото, получите AI-обработку (AI Review) и оценку нарядов с учётом выбранного случая.
 
 ## Лендинг
 
@@ -11,9 +11,9 @@
 ## Возможности
 
 - **Загрузка фото** — drag-and-drop, камера, галерея (1–6 фото, JPG/PNG/HEIC)
-- **Simple Look (image-to-image)** — AI-обработка: чистый фон, студийный свет, единая поза, без телефона
+- **AI Review (image-to-image)** — AI-обработка: замена фона под выбранный контекст, студийный свет, единая поза, без телефона
 - **Режимы сравнения** — Pick Best (по умолчанию), карусель
-- **AI-оценка** — выбор случая (офис, свидание и др.), оценка 1–10, рекомендация для каждого фото
+- **AI Review** — одна кнопка: выбор случая (офис, свидание и др.) + чекбокс «Единый фон и поза» (по умолчанию включён); нормализует фото под выбранный контекст, затем даёт оценку 1–10 и рекомендацию для каждого фото
 - **Экспорт** — коллаж в JPG для шеринга
 - **Голосование друзей** — публичная ссылка на сессию, друзья оценивают фото 1–5 звёзд, видят средний рейтинг
 
@@ -24,7 +24,7 @@
 | **Frontend** | React 18, TypeScript, Vite 7, Tailwind CSS, shadcn/ui (Radix UI), React Router 6, TanStack Query 5 |
 | **UI** | Lucide React (иконки), Embla Carousel, date-fns, Sonner (toast) |
 | **Backend** | Supabase (PostgreSQL, Auth, Storage, Edge Functions на Deno) |
-| **AI** | OpenRouter (оценка нарядов, Simple Look через google/gemini-2.5-flash-image) |
+| **AI** | OpenRouter (оценка нарядов, AI Review через google/gemini-2.5-flash-image) |
 
 ## Быстрый старт
 
@@ -112,7 +112,7 @@ supabase db push
    |----------|--------------|---------|----------|
    | `OPENROUTER_API_KEY` | да | normalize-photo, analyze-outfits | Ключ API с [openrouter.ai](https://openrouter.ai) |
    | `OPENROUTER_MODEL` | нет | analyze-outfits | Модель для оценки нарядов (Rate Outfits). По умолчанию: `google/gemini-2.5-flash` |
-   | `OPENROUTER_IMAGE_MODEL` | нет | normalize-photo | Модель для Simple Look (image-to-image). По умолчанию: `google/gemini-2.5-flash-image`. Важно: только модель с поддержкой вывода изображений |
+   | `OPENROUTER_IMAGE_MODEL` | нет | normalize-photo | Модель для AI Review (image-to-image). По умолчанию: `google/gemini-2.5-flash-image`. Важно: только модель с поддержкой вывода изображений |
    | `YOOKASSA_SHOP_ID` | да (для подписки) | create-yookassa-payment, yookassa-webhook | Shop ID из личного кабинета ЮKassa |
    | `YOOKASSA_SECRET_KEY` | да (для подписки) | create-yookassa-payment, yookassa-webhook | Secret key ЮKassa |
    | `YOOKASSA_PACK_5_AMOUNT` | нет | create-yookassa-payment | Цена пакета 5 примерок в RUB, по умолчанию `99.00` |
@@ -122,7 +122,7 @@ supabase db push
    | `SUPABASE_URL` | — | все | Подставляется Supabase автоматически |
    | `SUPABASE_SERVICE_ROLE_KEY` | — | все | Подставляется Supabase автоматически |
 
-   **Список моделей для Simple Look** (переменная `OPENROUTER_IMAGE_MODEL`):
+   **Список моделей для AI Review** (переменная `OPENROUTER_IMAGE_MODEL`):
    - `google/gemini-2.5-flash-image` — по умолчанию
    - `openai/gpt-5-image-mini`
    - `google/gemini-3-pro-image-preview`
@@ -184,7 +184,7 @@ supabase/
 │   ├── 008_credit_packs.sql          # user_credits, пакеты примерок
 │   └── 009_fix_credit_period_ambiguity.sql  # фикс ON CONFLICT ambiguity
 └── functions/
-    ├── normalize-photo/              # Simple Look: image-to-image + Storage
+    ├── normalize-photo/              # AI Review: image-to-image + Storage
     ├── analyze-outfits/             # AI-оценка нарядов + quota check
     ├── create-yookassa-payment/     # Создание платежа (пакеты 5/10/20)
     ├── yookassa-webhook/            # Пополнение user_credits после оплаты
@@ -228,7 +228,7 @@ supabase/
 | Статус (БД) | В интерфейсе | Описание | Когда устанавливается |
 |-------------|--------------|----------|------------------------|
 | `uploading` | Загрузка / Uploading | Загрузка фото | По умолчанию при создании сессии |
-| `normalizing` | Обработка / Processing | Simple Look (AI) в процессе | При запуске нормализации в NewSession или Compare |
+| `normalizing` | Обработка / Processing | AI Review в процессе | При запуске нормализации в NewSession или Compare |
 | `ready` | Готово / Ready | Готово к анализу | После успешной нормализации; при ошибке — откат в ready |
 | `analyzed` | Проанализировано / Analyzed | Анализ выполнен | После успешного Rate Outfits |
 
@@ -239,7 +239,7 @@ supabase/
 | Статус | Описание | Когда устанавливается |
 |--------|----------|------------------------|
 | `uploaded` | Загружено | По умолчанию при вставке в БД |
-| `normalizing` | В процессе Simple Look | Перед вызовом normalize-photo |
+| `normalizing` | В процессе AI Review | Перед вызовом normalize-photo |
 | `ready` | Обработано | После успешного ответа от edge-функции |
 | `error` | Ошибка обработки | При падении normalize-photo |
 
@@ -247,7 +247,7 @@ supabase/
 
 - **Локализация** — статусы сессий отображаются на языке интерфейса (RU/EN)
 - **Обработка ошибок** — при сбое нормализации фото получает `error`, сессия откатывается в `ready`
-- **Повторная нормализация** — при Simple Look в Compare сессия переходит в `normalizing` → `ready` (анализ нужно запустить заново)
+- **Повторная нормализация** — при AI Review в Compare сессия переходит в `normalizing` → `ready` (анализ нужно запустить заново)
 
 ## Деплой на сервере
 
@@ -720,6 +720,16 @@ curl "https://ваш-проект.supabase.co/functions/v1/cleanup-orphans" \
 - [ ] **i18n** — вынести переводы в JSON, добавить языки
 
 ## История изменений
+
+### 2026-05-25
+
+- **Кнопки «Rate Outfit» и «Simple Look» объединены в одну «AI оценка / AI Review»** — кнопка открывает диалог выбора стиля с чекбоксом «Единый фон и поза / Unify background & pose» (по умолчанию включён). При включённом чекбоксе фото сначала нормализуются под выбранный контекст, затем анализируются за один вызов
+- **Фон нормализации соответствует выбранному стилю** — выбор «Офис», «Свидание», «Вечеринка», «Повседневный» передаётся в `normalize-photo` и определяет тип фона через `buildBackgroundPrompt`; кастомный текст также поддерживается
+- **Промпт нормализации усилен** — каждый вариант фона теперь явно содержит «Remove the original background entirely. Replace it with:…»; `BASE_PROMPT` обновлён: первоочередная задача — замена фона
+- **Переименование «Simple Look» → «AI Review»** — все пользовательские строки обновлены (кнопки, тосты, лейблы, alt-тексты, BeforeAfterView)
+- **«Analyzing…» → «Reviewing…» / «Оценка…»** — спиннер на кнопке во время работы
+- **Язык по умолчанию изменён на русский**
+- **Добавлено debug-логирование** в `normalize-photo`: модель, URL изображения и полный промпт выводятся в Supabase Edge Function Logs
 
 ### 2026-05-18
 
