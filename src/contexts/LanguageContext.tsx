@@ -91,6 +91,8 @@ const translations: Record<Language, Record<string, string>> = {
     'vote.linkCopied': 'Ссылка скопирована',
     'vote.refresh': 'Обновить',
     'vote.refreshed': 'Данные обновлены',
+    'photo.expand': 'Развернуть',
+    'photo.collapse': 'Свернуть',
   },
   en: {
     'app.title': 'MirrorVote',
@@ -180,6 +182,8 @@ const translations: Record<Language, Record<string, string>> = {
     'vote.linkCopied': 'Link copied',
     'vote.refresh': 'Refresh',
     'vote.refreshed': 'Data updated',
+    'photo.expand': 'Expand',
+    'photo.collapse': 'Collapse',
   },
 }
 
