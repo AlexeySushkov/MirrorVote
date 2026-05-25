@@ -382,6 +382,22 @@ server {
         add_header Cache-Control "no-cache, must-revalidate";
         expires 0;
     }
+
+    # PWA: Service Worker — НИКОГДА не кэшировать HTTP-кэшем браузера.
+    # Если sw.js закэширован с max-age, браузер не увидит обновлений.
+    location = /app/sw.js {
+        alias /var/www/mirror-vote-app-dist/sw.js;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        expires 0;
+    }
+
+    # PWA: Web App Manifest — без кэша (браузер должен читать свежий)
+    location = /app/manifest.webmanifest {
+        alias /var/www/mirror-vote-app-dist/manifest.webmanifest;
+        add_header Cache-Control "no-cache";
+        add_header Content-Type "application/manifest+json";
+    }
 }
 ```
 
@@ -425,12 +441,108 @@ ssh user@mirror-vote.ru "nano /var/www/mirror-vote-app-dist/config.js"
 
 > **Nginx перезапускать не нужно** — статические файлы читаются с диска при каждом запросе.
 
+## PWA
+
+MirrorVote — полноценный Progressive Web App. Одна кодовая база обслуживает и веб-браузер, и установленное приложение на смартфоне: никакой отдельной сборки нет, `dist/` одинаков для обоих случаев.
+
+### Что добавлено
+
+| Файл | Назначение |
+|------|-----------|
+| `dist/manifest.webmanifest` | Web App Manifest (название, иконки, `start_url`, `display: standalone`) |
+| `dist/sw.js` | Сервис-воркер на Workbox — прекэш app shell, NetworkFirst для Supabase |
+| `dist/pwa-192x192.png` | Иконка 192×192 (Android Chrome, обязательный минимум) |
+| `dist/pwa-512x512.png` | Иконка 512×512 (splash screen при запуске) |
+| `dist/maskable-icon-512x512.png` | Maskable-иконка для адаптивных иконок Android |
+| `dist/apple-touch-icon-180x180.png` | Иконка для iOS Safari «Добавить на экран Домой» |
+
+### Стратегии кэша сервис-воркера
+
+| Ресурс | Стратегия | Почему |
+|--------|-----------|--------|
+| HTML / JS / CSS / шрифты / PNG (app shell) | **Precache** (CacheFirst) | Загружается без сети после первого визита |
+| Supabase API (`*.supabase.co`) | **NetworkFirst**, timeout 10 сек | Данные должны быть свежими; при оффлайне — кэш последних запросов |
+| Google Fonts CSS | **StaleWhileRevalidate** | Обновляется в фоне, показывает кэш сразу |
+| Google Fonts woff2 | **CacheFirst**, 1 год | Файлы шрифтов почти никогда не меняются |
+| `config.js` | **Без кэша** (исключён из precache) | Runtime-конфиг с ключами Supabase — должен всегда грузиться с сервера |
+
+### Поведение оффлайн
+
+App shell (HTML + JS + CSS) кэшируется после первого онлайн-визита. При следующем открытии без сети:
+- Приложение запускается и показывает интерфейс
+- Supabase-запросы падают через 10 сек → React Query показывает ошибку, toast уведомляет пользователя
+- Аутентификация работает: Supabase хранит JWT в `localStorage`, `AuthContext` читает его синхронно без сети
+
+### Уведомление об обновлении
+
+Компонент `PWAUpdatePrompt` следит за новым сервис-воркером. При выходе новой версии пользователь видит toast:
+
+> **Доступна новая версия** · кнопка «Обновить»
+
+После нажатия SW активируется и страница перезагружается с новым кодом. Без подтверждения пользователя принудительного обновления не происходит.
+
+### Установка на устройство
+
+**Android Chrome** — после двух визитов на сайт Chrome предлагает «Установить приложение» в адресной строке. Приложение открывается в отдельном окне без адресной строки, иконка появляется на рабочем столе.
+
+**iOS Safari** — автоматического баннера нет (ограничение iOS). Пользователь нажимает «Поделиться» → «На экран «Домой»». Приложение открывается в полноэкранном режиме (`display: standalone`), иконка — `apple-touch-icon-180x180.png`.
+
+### Регенерация иконок
+
+Если изменился `public/favicon.svg`:
+
+```bash
+npm run pwa-icons
+```
+
+Скрипт перегенерирует все четыре PNG из SVG. Конфиг: [scripts/pwa-icons.config.ts](scripts/pwa-icons.config.ts).
+
+### Проверка после деплоя
+
+```bash
+# Локальная проверка собранной версии
+npm run build
+npm run preview
+```
+
+В **Chrome DevTools → Application**:
+- **Service Workers** — статус `activated and is running`
+- **Manifest** — все поля и иконки отображаются без ошибок
+- **Lighthouse → PWA audit** — все проверки зелёные
+
+### Nginx: обязательные заголовки для PWA
+
+> Эти блоки уже включены в конфиг [§ 4. Конфигурация nginx](#4-конфигурация-nginx) ниже. Вынесено отдельно для наглядности.
+
+```nginx
+# Service Worker — НИКОГДА не кэшировать HTTP-кэшем.
+# Если sw.js будет закэширован, браузер не увидит обновлений.
+location = /app/sw.js {
+    alias /var/www/mirror-vote-app-dist/sw.js;
+    add_header Cache-Control "no-cache, no-store, must-revalidate";
+    add_header Pragma "no-cache";
+    expires 0;
+}
+
+# Web App Manifest — без кэша
+location = /app/manifest.webmanifest {
+    alias /var/www/mirror-vote-app-dist/manifest.webmanifest;
+    add_header Cache-Control "no-cache";
+    add_header Content-Type "application/manifest+json";
+}
+```
+
+**Почему это критично:** браузер проверяет обновления SW, скачивая `sw.js` и сравнивая байты. Если HTTP-кэш отдаёт старый файл, пользователи никогда не получат новую версию приложения. Lighthouse специально проверяет этот заголовок.
+
+---
+
 ## Скрипты
 
 ```bash
-npm run dev      # Разработка
-npm run build    # Сборка
-npm run preview  # Превью сборки
+npm run dev       # Разработка
+npm run build     # Сборка
+npm run preview   # Превью сборки
+npm run pwa-icons # Регенерация PNG-иконок из public/favicon.svg
 ```
 
 ## Обслуживание: анонимные пользователи
@@ -577,7 +689,7 @@ curl "https://ваш-проект.supabase.co/functions/v1/cleanup-orphans" \
 
 ### Интеграции
 - [ ] **Telegram Mini App** — запуск внутри Telegram с авто-авторизацией через бота. Инструкция: [TelegramMiniApp.md](./TelegramMiniApp.md)
-- [ ] **PWA** — manifest.json, service worker, установка на домашний экран, офлайн-заглушка
+- [x] **PWA** — manifest.webmanifest, Workbox service worker, иконки, установка на домашний экран, офлайн app shell
 
 ### Функции
 - [x] **Голосование друзей** — публичная ссылка на сессию, оценка 1–5 звёзд

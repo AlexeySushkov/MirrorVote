@@ -197,6 +197,17 @@ export function VotePage() {
             </div>
           ))}
         </div>
+
+        <div className="mt-10 flex justify-center">
+          <a
+            href="https://mirror-vote.ru/app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md transition-opacity hover:opacity-90"
+          >
+            Попробовать MirrorVote
+          </a>
+        </div>
       </div>
     </div>
   )
