@@ -75,9 +75,9 @@ export function SessionCard({ session, onClick, selectable, selected, onSelectCh
           </div>
           <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
         </div>
-        {/* Нижняя строка: название + дата + бейдж + кнопка */}
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <div className="flex-1 min-w-0">
+        {/* Строка 2: название + дата + бейдж */}
+        <div className="flex items-start justify-between gap-2 min-w-0">
+          <div className="min-w-0">
             <p className="font-medium truncate">
               {session.background
                 ? `${session.title} (${session.background})`
@@ -87,13 +87,16 @@ export function SessionCard({ session, onClick, selectable, selected, onSelectCh
               {format(new Date(session.created_at), 'd MMM yyyy, HH:mm', { locale: ru })}
             </p>
           </div>
-          <Badge variant={session.status === 'analyzed' ? 'accent' : 'secondary'}>
+          <Badge variant={session.status === 'analyzed' ? 'accent' : 'secondary'} className="shrink-0">
             {t(`session.status.${session.status}`)}
           </Badge>
+        </div>
+        {/* Строка 3: кнопка голосования */}
+        <div>
           <Button
             variant="outline"
             size="sm"
-            className="h-8 px-2 shrink-0"
+            className="h-8 px-2"
             onClick={handleCopyVoteLink}
           >
             <Link2 className="h-4 w-4 mr-1" />
