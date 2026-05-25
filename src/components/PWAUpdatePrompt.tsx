@@ -26,7 +26,8 @@ export function PWAUpdatePrompt() {
         zIndex: 9999,
         background: '#1c1c1e',
         color: '#fff',
-        padding: '16px',
+        // env(safe-area-inset-bottom) отступает от системной навигации на Android/iOS
+        padding: '16px 16px calc(16px + env(safe-area-inset-bottom, 0px))',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -38,7 +39,16 @@ export function PWAUpdatePrompt() {
         Доступна новая версия
       </span>
       <button
-        onClick={() => updateServiceWorker(true)}
+        onClick={async () => {
+          // updateServiceWorker(true) ждёт controllerchange перед reload.
+          // Чтобы reload гарантированно сработал — делаем это сами через 1 с.
+          const fallback = setTimeout(() => window.location.reload(), 1000)
+          try {
+            await updateServiceWorker(true)
+          } finally {
+            clearTimeout(fallback)
+          }
+        }}
         style={{
           background: '#e05c7e',
           color: '#fff',

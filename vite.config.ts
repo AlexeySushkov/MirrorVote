@@ -53,7 +53,10 @@ export default defineConfig({
         navigateFallbackAllowlist: [/^\/app\//],
 
         skipWaiting: false,
-        clientsClaim: false,
+        // clientsClaim: true нужен чтобы после skipWaiting новый SW
+        // взял контроль над страницей и сработал controllerchange →
+        // updateServiceWorker(true) смог вызвать window.location.reload()
+        clientsClaim: true,
 
         runtimeCaching: [
           {
