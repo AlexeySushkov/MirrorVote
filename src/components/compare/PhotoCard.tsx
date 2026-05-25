@@ -78,7 +78,7 @@ export function PhotoCard({ photo, showNormalized, isBest, className, onPrev, on
         {/* Expand button — top-right, shown on hover */}
         <button
           type="button"
-          className="absolute top-2 right-2 z-20 flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1.5 text-xs text-white select-none touch-none opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-2 right-2 z-20 flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1.5 text-xs text-white select-none touch-none"
           onClick={() => setFullscreen(true)}
           aria-label={t('photo.expand')}
         >
