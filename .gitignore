@@ -11,7 +11,7 @@ supabase/.temp/
 test/
 test*
 Landing/
-Landing2/
+Landing*/
 doc/
 y-kassa/
 selectel/
