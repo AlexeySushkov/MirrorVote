@@ -1,0 +1,42 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Inject config.js
+        run: |
+          cat > dist/config.js << 'EOF'
+          window.__APP_CONFIG__ = {
+            SUPABASE_URL: '${{ secrets.SUPABASE_URL }}',
+            SUPABASE_KEY: '${{ secrets.SUPABASE_KEY }}',
+          }
+          EOF
+
+      - name: Deploy via rsync
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avz --delete
+          path: dist/
+          remote_path: /var/www/mirror-vote-app-dist/
+          remote_host: mirror-vote.ru
+          remote_user: webuser
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}

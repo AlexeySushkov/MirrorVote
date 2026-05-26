@@ -253,40 +253,25 @@ supabase/
 
 Сервер: Selectel VPS, nginx, домен `mirror-vote.ru`. SPA раздаётся из `/var/www/mirror-vote-app-dist/`, все запросы к Supabase проксируются через nginx.
 
-### 1. Сборка
+### 1. CI/CD (GitHub Actions)
 
-```bash
-npm run build
-```
+Деплой автоматический: **push в `main` → сборка → rsync на сервер**.
 
-Собранный бандл появится в `dist/`.
+Workflow: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
 
-### 2. Конфигурация бандла (`config.js`)
+Перед первым запуском добавить секреты в **GitHub → Settings → Secrets → Actions**:
 
-После деплоя на сервере отредактировать `/var/www/mirror-vote-app-dist/config.js`:
+| Secret | Значение |
+|--------|---------|
+| `SSH_PRIVATE_KEY` | Приватный ключ от `webuser@mirror-vote.ru` |
+| `SUPABASE_URL` | `https://mirror-vote.ru/supabase` |
+| `SUPABASE_KEY` | anon-ключ из Supabase Dashboard → API Keys |
 
-```js
-window.__APP_CONFIG__ = {
-  SUPABASE_URL: 'https://mirror-vote.ru/supabase',  // nginx-прокси
-  SUPABASE_KEY: 'eyJ...',  // anon/publishable ключ из Supabase Dashboard → API Keys
-}
-```
+Публичный ключ должен быть в `~/.ssh/authorized_keys` у `webuser` на сервере.
 
-> Файл не пересобирается при изменении — достаточно отредактировать его на сервере и обновить страницу в браузере.
+> `config.js` с ключами Supabase **не хранится в репо** — генерируется в CI из секретов и сразу уходит на сервер.
 
-### 3. Копирование файлов на сервер
-
-```bash
-rsync -avz --delete dist/ user@mirror-vote.ru:/var/www/mirror-vote-app-dist/
-```
-
-После копирования восстановить `config.js` (rsync перезапишет его пустым из репо):
-
-```bash
-ssh user@mirror-vote.ru "nano /var/www/mirror-vote-app-dist/config.js"
-```
-
-### 4. Конфигурация nginx
+### 2. Конфигурация nginx
 
 Файл: `/etc/nginx/sites-enabled/mirror-vote.ru.conf`
 
@@ -401,7 +386,7 @@ server {
 }
 ```
 
-### 5. Проверка и перезапуск nginx
+### 3. Проверка и перезапуск nginx
 
 ```bash
 # Проверить конфиг перед применением
@@ -414,7 +399,7 @@ systemctl reload nginx
 systemctl restart nginx
 ```
 
-### 6. SSL-сертификат (Let's Encrypt)
+### 4. SSL-сертификат (Let's Encrypt)
 
 ```bash
 certbot --nginx -d mirror-vote.ru -d www.mirror-vote.ru
@@ -426,18 +411,9 @@ certbot --nginx -d mirror-vote.ru -d www.mirror-vote.ru
 systemctl status certbot.timer
 ```
 
-### 7. Обновление приложения
+### 6. Обновление приложения
 
-```bash
-# 1. Собрать локально
-npm run build
-
-# 2. Скопировать на сервер
-rsync -avz --delete dist/ user@mirror-vote.ru:/var/www/mirror-vote-app-dist/
-
-# 3. Восстановить config.js (rsync перезапишет его пустым)
-ssh user@mirror-vote.ru "nano /var/www/mirror-vote-app-dist/config.js"
-```
+Сделать `git push` в `main` — GitHub Actions соберёт и задеплоит автоматически (~25 сек).
 
 > **Nginx перезапускать не нужно** — статические файлы читаются с диска при каждом запросе.
 
@@ -715,7 +691,7 @@ curl "https://ваш-проект.supabase.co/functions/v1/cleanup-orphans" \
 - [ ] **Оптимизация изображений** — WebP, lazy loading, CDN
 - [ ] **Rate limiting** — защита edge-функций от злоупотреблений
 - [ ] **Автоудаление анонимов** — cron (pg_cron / GitHub Actions) для очистки старых анонимных сессий
-- [ ] **CI-деплой вместо коммита `dist/`** — GitHub Actions: на push в `main` запускать `npm run build` и `rsync dist/` на Selectel по SSH; после этого убрать `dist/` из репо и вернуть в `.gitignore`
+- [x] **CI-деплой вместо коммита `dist/`** — GitHub Actions (`.github/workflows/deploy.yml`): push в `main` → сборка → rsync на Selectel; `dist/` убран из репо
 - [ ] **E2E-тесты** — Playwright для основных сценариев
 - [ ] **i18n** — вынести переводы в JSON, добавить языки
 

@@ -1,11 +1,11 @@
 node_modules/
 .env
 .claude/
+dist/
 *.jpg
 *.jpeg
 *.png
 !public/*.png
-!dist/*.png
 tsconfig.tsbuildinfo
 supabase/.temp/
 test/
