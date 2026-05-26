@@ -13,9 +13,10 @@ interface PhotoCardProps {
   className?: string
   onPrev?: () => void
   onNext?: () => void
+  onExpand?: () => void
 }
 
-export function PhotoCard({ photo, showNormalized, isBest, className, onPrev, onNext }: PhotoCardProps) {
+export function PhotoCard({ photo, showNormalized, isBest, className, onPrev, onNext, onExpand }: PhotoCardProps) {
   const { t } = useLanguage()
   const [peekOriginal, setPeekOriginal] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
@@ -79,7 +80,7 @@ export function PhotoCard({ photo, showNormalized, isBest, className, onPrev, on
         <button
           type="button"
           className="absolute top-2 right-2 z-20 flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1.5 text-xs text-white select-none touch-none"
-          onClick={() => setFullscreen(true)}
+          onClick={() => onExpand ? onExpand() : setFullscreen(true)}
           aria-label={t('photo.expand')}
         >
           <Maximize2 className="h-3.5 w-3.5" />
