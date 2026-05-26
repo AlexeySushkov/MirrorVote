@@ -699,6 +699,9 @@ curl "https://ваш-проект.supabase.co/functions/v1/cleanup-orphans" \
 
 ### 2026-05-26
 
+- **CI/CD через GitHub Actions** — деплой полностью автоматизирован: push в `main` → сборка → rsync на сервер. `dist/` убран из репо (возвращён в `.gitignore`). `config.js` с ключами Supabase генерируется в CI из GitHub Secrets и не хранится в git. Workflow: `.github/workflows/deploy.yml`
+- **Добавлен CLAUDE.md** — документация для Claude Code: команды, архитектура, деплой
+- **Переименование кнопки** — «Вернуть Look» / «Back to Look» → «AI Look» на кнопке переключения оригинал ↔ AI-обработка
 - **Фикс визуальной реакции кнопки «Обновить» в PWA-баннере** — кнопка использовала `WebkitTapHighlightColor: transparent` и inline-стили, из-за чего псевдокласс `:active` не работал и нажатие никак не отображалось. Добавлены `pressed`-состояние (через `onPointerDown/Up/Leave/Cancel`): цвет темнеет с `#e05c7e` до `#b8405f`, кнопка сжимается (`scale(0.94)`). Добавлено `loading`-состояние: текст меняется на `…`, opacity 0.7, кнопка `disabled` — исключает повторные нажатия во время перезагрузки. Переход плавный (`transition 0.08s`).
 
 ### 2026-05-25
