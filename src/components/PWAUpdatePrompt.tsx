@@ -1,6 +1,10 @@
+import { useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 
 export function PWAUpdatePrompt() {
+  const [loading, setLoading] = useState(false)
+  const [pressed, setPressed] = useState(false)
+
   const {
     needRefresh: [needRefresh],
     updateServiceWorker,
@@ -15,6 +19,19 @@ export function PWAUpdatePrompt() {
   })
 
   if (!needRefresh) return null
+
+  const handleUpdate = async () => {
+    if (loading) return
+    setLoading(true)
+    // fallback: если updateServiceWorker завис — перезагрузим сами через 1 с
+    const fallback = setTimeout(() => window.location.reload(), 1000)
+    try {
+      await updateServiceWorker(true)
+    } finally {
+      clearTimeout(fallback)
+      setLoading(false)
+    }
+  }
 
   return (
     <div
@@ -39,31 +56,30 @@ export function PWAUpdatePrompt() {
         Доступна новая версия
       </span>
       <button
-        onClick={async () => {
-          // updateServiceWorker(true) ждёт controllerchange перед reload.
-          // Чтобы reload гарантированно сработал — делаем это сами через 1 с.
-          const fallback = setTimeout(() => window.location.reload(), 1000)
-          try {
-            await updateServiceWorker(true)
-          } finally {
-            clearTimeout(fallback)
-          }
-        }}
+        onClick={handleUpdate}
+        disabled={loading}
+        onPointerDown={() => setPressed(true)}
+        onPointerUp={() => setPressed(false)}
+        onPointerLeave={() => setPressed(false)}
+        onPointerCancel={() => setPressed(false)}
         style={{
-          background: '#e05c7e',
+          background: pressed ? '#b8405f' : loading ? '#a04060' : '#e05c7e',
           color: '#fff',
           border: 'none',
           borderRadius: '8px',
           padding: '8px 20px',
           fontSize: '14px',
           fontWeight: 600,
-          cursor: 'pointer',
+          cursor: loading ? 'default' : 'pointer',
           flexShrink: 0,
           WebkitTapHighlightColor: 'transparent',
           touchAction: 'manipulation',
+          transform: pressed ? 'scale(0.94)' : 'scale(1)',
+          transition: 'transform 0.08s ease, background 0.08s ease',
+          opacity: loading ? 0.7 : 1,
         }}
       >
-        Обновить
+        {loading ? '…' : 'Обновить'}
       </button>
     </div>
   )
