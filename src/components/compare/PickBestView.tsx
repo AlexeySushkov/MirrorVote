@@ -51,22 +51,6 @@ export function PickBestView({ photos, showNormalized, bestPhotoId, onCurrentPho
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={restart}>
-          <RotateCcw className="mr-2 h-4 w-4" />
-          {t('compare.restart')}
-        </Button>
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={eliminate}
-          disabled={isWinner}
-        >
-          <X className="mr-2 h-4 w-4" />
-          {t('compare.exclude')} {remaining.length}/{photos.length}
-        </Button>
-      </div>
-
       {isWinner && (
         <div className="flex items-center justify-center gap-2 py-3 rounded-lg bg-accent/15 border border-accent/30">
           <Trophy className="h-5 w-5 text-accent" />
@@ -95,6 +79,22 @@ export function PickBestView({ photos, showNormalized, bestPhotoId, onCurrentPho
             aria-label={`Photo ${i + 1}`}
           />
         ))}
+      </div>
+
+      <div className="flex items-center justify-center gap-2">
+        <Button variant="outline" size="sm" onClick={restart}>
+          <RotateCcw className="mr-2 h-4 w-4" />
+          {t('compare.showAll')}
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={eliminate}
+          disabled={isWinner}
+        >
+          <X className="mr-2 h-4 w-4" />
+          {t('compare.hide')} {remaining.length}/{photos.length}
+        </Button>
       </div>
     </div>
   )

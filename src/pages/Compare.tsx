@@ -265,6 +265,35 @@ export function Compare() {
         />
 
         {hasAtLeastOnePhoto && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="destructive"
+              onClick={() => setOccasionOpen(true)}
+              disabled={analyzing || normalizing || !hasAtLeastOnePhoto}
+            >
+              {(analyzing || normalizing) ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t('compare.analyzing')}
+                </>
+              ) : (
+                t('compare.aiReview')
+              )}
+            </Button>
+            <OccasionPicker
+              open={occasionOpen}
+              onOpenChange={setOccasionOpen}
+              onSelect={handleAiReview}
+              disabled={analyzing || normalizing}
+            />
+            <Button variant="outline" onClick={handleCopyVoteLink}>
+              <Link2 className="mr-2 h-4 w-4" />
+              {t('vote.copyLink')}
+            </Button>
+          </div>
+        )}
+
+        {hasAtLeastOnePhoto && (
           <>
             {viewMode === 'carousel' && hasAtLeastOnePhoto && (
               <CarouselView
@@ -305,30 +334,6 @@ export function Compare() {
                 {t('upload.addMore')}
               </Button>
             )}
-            <Button
-              variant="destructive"
-              onClick={() => setOccasionOpen(true)}
-              disabled={analyzing || normalizing || !hasAtLeastOnePhoto}
-            >
-              {(analyzing || normalizing) ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('compare.analyzing')}
-                </>
-              ) : (
-                t('compare.aiReview')
-              )}
-            </Button>
-            <OccasionPicker
-              open={occasionOpen}
-              onOpenChange={setOccasionOpen}
-              onSelect={handleAiReview}
-              disabled={analyzing || normalizing}
-            />
-            <Button variant="outline" onClick={handleCopyVoteLink}>
-              <Link2 className="mr-2 h-4 w-4" />
-              {t('vote.copyLink')}
-            </Button>
             {hasPhotoPair && (
               <CollageExport photos={photosList} bestPhotoId={session.best_photo_id} />
             )}
