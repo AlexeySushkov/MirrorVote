@@ -9,7 +9,7 @@ export default defineConfig({
     maskable: {
       sizes: [512],
       padding: 0.1,
-      resizeOptions: { background: '#DA6278' },
+      resizeOptions: { background: '#E03B1F' },
     },
     apple: {
       sizes: [180],
