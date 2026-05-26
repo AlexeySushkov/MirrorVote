@@ -20,17 +20,25 @@ export function PWAUpdatePrompt() {
 
   if (!needRefresh) return null
 
-  const handleUpdate = async () => {
+  const handleUpdate = () => {
     if (loading) return
     setLoading(true)
-    // fallback: если updateServiceWorker завис — перезагрузим сами через 1 с
-    const fallback = setTimeout(() => window.location.reload(), 1000)
-    try {
-      await updateServiceWorker(true)
-    } finally {
-      clearTimeout(fallback)
-      setLoading(false)
-    }
+    setPressed(false)
+
+    // Собственный listener на controllerchange — срабатывает когда новый SW
+    // берёт контроль над страницей после skipWaiting
+    navigator.serviceWorker.addEventListener(
+      'controllerchange',
+      () => window.location.reload(),
+      { once: true },
+    )
+
+    // Жёсткий fallback: перезагрузка через 3 с в любом случае.
+    // НЕ очищаем — multiple reload() безвредны, первый побеждает.
+    setTimeout(() => window.location.reload(), 3000)
+
+    // Сигнализируем ждущему SW сделать skipWaiting
+    updateServiceWorker(true).catch(() => window.location.reload())
   }
 
   return (
@@ -43,7 +51,6 @@ export function PWAUpdatePrompt() {
         zIndex: 9999,
         background: '#1c1c1e',
         color: '#fff',
-        // env(safe-area-inset-bottom) отступает от системной навигации на Android/iOS
         padding: '16px 16px calc(16px + env(safe-area-inset-bottom, 0px))',
         display: 'flex',
         alignItems: 'center',
@@ -52,13 +59,10 @@ export function PWAUpdatePrompt() {
         boxShadow: '0 -2px 12px rgba(0,0,0,0.3)',
       }}
     >
-      <span style={{ fontSize: '14px' }}>
-        Доступна новая версия
-      </span>
+      <span style={{ fontSize: '14px' }}>Доступна новая версия</span>
       <button
         onClick={handleUpdate}
-        disabled={loading}
-        onPointerDown={() => setPressed(true)}
+        onPointerDown={() => !loading && setPressed(true)}
         onPointerUp={() => setPressed(false)}
         onPointerLeave={() => setPressed(false)}
         onPointerCancel={() => setPressed(false)}
@@ -77,6 +81,8 @@ export function PWAUpdatePrompt() {
           transform: pressed ? 'scale(0.94)' : 'scale(1)',
           transition: 'transform 0.08s ease, background 0.08s ease',
           opacity: loading ? 0.7 : 1,
+          // НЕ используем disabled — он блокирует pointer-события и ломает pressed-анимацию
+          pointerEvents: loading ? 'none' : 'auto',
         }}
       >
         {loading ? '…' : 'Обновить'}
