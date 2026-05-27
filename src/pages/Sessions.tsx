@@ -85,7 +85,7 @@ export function Sessions() {
               : `Free • Осталось ${remaining ?? 0} AI оценок`}
           </Badge>
         </div>
-        {/* Ряд 2: купить слева, действия справа */}
+        {/* Ряд 2: купить слева, новая сессия справа */}
         <div className="flex items-center justify-between sm:justify-end gap-2">
           <Button
             variant="destructive"
@@ -95,25 +95,12 @@ export function Sessions() {
           >
             {packPending !== null ? '...' : 'Купить 5 AI оценок'}
           </Button>
-          <div className="flex gap-2">
-            {selected.size > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleDeleteSelected}
-                disabled={deleteSessions.isPending}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {t('sessions.deleteSelected')} ({selected.size})
-              </Button>
-            )}
-            <Button asChild variant="outline">
-              <Link to="/sessions/new">
-                <Plus className="mr-2 h-4 w-4" />
-                {t('sessions.new')}
-              </Link>
-            </Button>
-          </div>
+          <Button asChild variant="outline">
+            <Link to="/sessions/new">
+              <Plus className="mr-2 h-4 w-4" />
+              {t('sessions.new')}
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -139,6 +126,17 @@ export function Sessions() {
               onSelectChange={(checked) => toggleSelect(session.id, checked)}
             />
           ))}
+          {selected.size > 0 && (
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={handleDeleteSelected}
+              disabled={deleteSessions.isPending}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t('sessions.deleteSelected')} ({selected.size})
+            </Button>
+          )}
         </div>
       )}
     </div>
