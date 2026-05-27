@@ -20,6 +20,25 @@ export function CarouselView({ photos, showNormalized, bestPhotoId, onSlideChang
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [fullscreen, setFullscreen] = useState(false)
   const [peekOriginal, setPeekOriginal] = useState(false)
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set())
+
+  const visiblePhotos = photos.filter(p => !hiddenIds.has(p.id))
+
+  const handleHide = useCallback((photoId: string) => {
+    setHiddenIds(prev => new Set([...prev, photoId]))
+  }, [])
+
+  const handleShowAll = useCallback(() => {
+    setHiddenIds(new Set())
+  }, [])
+
+  // Reinit embla and clamp index when visible photos change
+  useEffect(() => {
+    if (!emblaApi) return
+    emblaApi.reInit()
+    const maxIdx = Math.max(0, visiblePhotos.length - 1)
+    emblaApi.scrollTo(Math.min(selectedIndex, maxIdx), true)
+  }, [hiddenIds, emblaApi])
 
   const swipeStartX = useRef<number | null>(null)
   const swipeStartY = useRef<number | null>(null)
@@ -78,7 +97,7 @@ export function CarouselView({ photos, showNormalized, bestPhotoId, onSlideChang
     else emblaApi?.scrollPrev()
   }
 
-  const currentPhoto = photos[selectedIndex]
+  const currentPhoto = visiblePhotos[selectedIndex] ?? visiblePhotos[0]
   const hasProcessed = Boolean(currentPhoto?.processed_photo_url)
   const showingProcessed = showNormalized && hasProcessed && !peekOriginal
   const imgUrl = showingProcessed ? currentPhoto?.processed_photo_url! : currentPhoto?.photo_url
@@ -88,7 +107,7 @@ export function CarouselView({ photos, showNormalized, bestPhotoId, onSlideChang
       <div className="overflow-hidden">
         <div ref={emblaRef} className="overflow-hidden">
           <div className="flex gap-4">
-            {photos.map((photo) => (
+            {visiblePhotos.map((photo) => (
               <div key={photo.id} className="flex-[0_0_80%] min-w-0">
                 <PhotoCard
                   photo={photo}
@@ -97,13 +116,15 @@ export function CarouselView({ photos, showNormalized, bestPhotoId, onSlideChang
                   onPrev={() => emblaApi?.scrollPrev()}
                   onNext={() => emblaApi?.scrollNext()}
                   onExpand={() => setFullscreen(true)}
+                  onHide={visiblePhotos.length > 1 ? () => handleHide(photo.id) : undefined}
+                  onShowAll={visiblePhotos.length === 1 ? handleShowAll : undefined}
                 />
               </div>
             ))}
           </div>
         </div>
         <div className="flex justify-center gap-1 mt-4">
-          {photos.map((_, i) => (
+          {visiblePhotos.map((_, i) => (
             <button
               key={i}
               className={`w-2 h-2 rounded-full transition-colors ${
@@ -188,7 +209,7 @@ export function CarouselView({ photos, showNormalized, bestPhotoId, onSlideChang
 
             {/* Slide counter */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1">
-              {photos.map((_, i) => (
+              {visiblePhotos.map((_, i) => (
                 <button
                   key={i}
                   className={`w-2 h-2 rounded-full transition-colors ${

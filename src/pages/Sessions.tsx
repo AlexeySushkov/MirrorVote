@@ -85,8 +85,19 @@ export function Sessions() {
               : `Free • Осталось ${remaining ?? 0} AI оценок`}
           </Badge>
         </div>
-        {/* Ряд 2: купить слева, новая сессия справа */}
+        {/* Ряд 2: удалить (если выбрано) | купить | новая сессия */}
         <div className="flex items-center justify-between sm:justify-end gap-2">
+          {selected.size > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteSelected}
+              disabled={deleteSessions.isPending}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t('sessions.deleteSelected')} ({selected.size})
+            </Button>
+          )}
           <Button
             variant="destructive"
             size="sm"
@@ -126,17 +137,6 @@ export function Sessions() {
               onSelectChange={(checked) => toggleSelect(session.id, checked)}
             />
           ))}
-          {selected.size > 0 && (
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={handleDeleteSelected}
-              disabled={deleteSessions.isPending}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              {t('sessions.deleteSelected')} ({selected.size})
-            </Button>
-          )}
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronLeft, ChevronRight, Eye, Maximize2, Minimize2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Maximize2, Minimize2 } from 'lucide-react'
 import type { Photo } from '@/integrations/supabase/types'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -14,9 +14,11 @@ interface PhotoCardProps {
   onPrev?: () => void
   onNext?: () => void
   onExpand?: () => void
+  onHide?: () => void
+  onShowAll?: () => void
 }
 
-export function PhotoCard({ photo, showNormalized, isBest, className, onPrev, onNext, onExpand }: PhotoCardProps) {
+export function PhotoCard({ photo, showNormalized, isBest, className, onPrev, onNext, onExpand, onHide, onShowAll }: PhotoCardProps) {
   const { t } = useLanguage()
   const [peekOriginal, setPeekOriginal] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
@@ -128,6 +130,25 @@ export function PhotoCard({ photo, showNormalized, isBest, className, onPrev, on
             Original
           </button>
         )}
+        {onShowAll ? (
+          <button
+            type="button"
+            className="absolute bottom-2 left-2 z-20 flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1.5 text-xs text-white select-none touch-none"
+            onClick={onShowAll}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            {t('compare.showAll')}
+          </button>
+        ) : onHide ? (
+          <button
+            type="button"
+            className="absolute bottom-2 left-2 z-20 flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1.5 text-xs text-white select-none touch-none"
+            onClick={onHide}
+          >
+            <EyeOff className="h-3.5 w-3.5" />
+            {t('compare.hidePhoto')}
+          </button>
+        ) : null}
       </div>
 
       {/* Fullscreen lightbox */}
