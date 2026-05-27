@@ -116,6 +116,7 @@ export function OccasionPicker({ open, onOpenChange, onSelect, disabled }: Occas
             />
           </div>
           <Button
+            variant="outline"
             onClick={handleCustom}
             disabled={disabled || !customValue.trim()}
           >
@@ -123,7 +124,7 @@ export function OccasionPicker({ open, onOpenChange, onSelect, disabled }: Occas
           </Button>
         </div>
         <Button
-          variant="outline"
+          variant="destructive"
           className="w-full"
           disabled={disabled}
           onClick={() => handleOpenChange(false)}
