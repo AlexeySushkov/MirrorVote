@@ -30,13 +30,10 @@ export function VoteLinkDialog({ url, open, onOpenChange }: VoteLinkDialogProps)
         <DialogHeader>
           <DialogTitle>{t('vote.dialogTitle')}</DialogTitle>
         </DialogHeader>
-        <p className="break-all rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-          {url}
-        </p>
         <div className="flex flex-col gap-2">
           <Button className="w-full" onClick={handleCopy}>
             <Copy className="mr-2 h-4 w-4" />
-            {t('vote.copyLink')}
+            {t('vote.copyLinkBtn')}
           </Button>
           <Button variant="outline" className="w-full" onClick={handleOpenInNewTab}>
             <ExternalLink className="mr-2 h-4 w-4" />
