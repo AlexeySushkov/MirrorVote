@@ -4,8 +4,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Loader2, List, ImagePlus, Eye, Link2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CarouselView } from '@/components/compare/CarouselView'
-import { PickBestView } from '@/components/compare/PickBestView'
-import { CompareToolbar } from '@/components/compare/CompareToolbar'
 import { InlineVerdict } from '@/components/analysis/InlineVerdict'
 import { OccasionPicker } from '@/components/analysis/OccasionPicker'
 import { CollageExport } from '@/components/share/CollageExport'
@@ -27,7 +25,7 @@ export function Compare() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { t } = useLanguage()
-  const { viewMode, setViewMode, showNormalized, toggleNormalized, sideBySideIndex } = useCompareMode()
+  const { showNormalized, toggleNormalized, sideBySideIndex } = useCompareMode()
 
   const { user } = useAuth()
   const queryClient = useQueryClient()
@@ -50,27 +48,11 @@ export function Compare() {
   const hasAtLeastOnePhoto = photosList.length >= 1
   const hasPhotoPair = photosList.length >= 2
 
-  const currentPhoto: Photo | undefined =
-    viewMode === 'pick-best' ? undefined : photosList[currentPhotoIndex]
-  const [pickBestPhoto, setPickBestPhoto] = useState<Photo | undefined>()
-  const activePhoto =
-    viewMode === 'pick-best'
-      ? pickBestPhoto
-        ? photosList.find((p) => p.id === pickBestPhoto.id) ?? pickBestPhoto
-        : undefined
-      : currentPhoto
+  const activePhoto: Photo | undefined = photosList[currentPhotoIndex]
 
   useEffect(() => {
-    if (!photosLoading && !hasPhotoPair && viewMode === 'pick-best') {
-      setViewMode('carousel')
-    }
-  }, [photosLoading, hasPhotoPair, viewMode, setViewMode])
-
-  useEffect(() => {
-    if (viewMode === 'carousel') {
-      setCurrentPhotoIndex(sideBySideIndex)
-    }
-  }, [sideBySideIndex, viewMode])
+    setCurrentPhotoIndex(sideBySideIndex)
+  }, [sideBySideIndex])
 
   const handleCarouselSlide = useCallback((idx: number) => {
     setCurrentPhotoIndex(idx)
@@ -96,9 +78,6 @@ export function Compare() {
     }
   }
 
-  const handlePickBestPhoto = useCallback((photo: Photo) => {
-    setPickBestPhoto(photo)
-  }, [])
 
   const addPhotoRef = useRef<HTMLInputElement>(null)
   const canAddMore = photosList.length < MAX_PHOTOS
@@ -259,12 +238,6 @@ export function Compare() {
         }}
       />
       <div className="space-y-6">
-        <CompareToolbar
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          canComparePair={hasPhotoPair}
-        />
-
         {hasAtLeastOnePhoto && (
           <div className="flex flex-wrap gap-2">
             <Button
@@ -295,24 +268,12 @@ export function Compare() {
         )}
 
         {hasAtLeastOnePhoto && (
-          <>
-            {viewMode === 'carousel' && hasAtLeastOnePhoto && (
-              <CarouselView
-                photos={photosList}
-                showNormalized={showNormalized}
-                bestPhotoId={session.best_photo_id}
-                onSlideChange={handleCarouselSlide}
-              />
-            )}
-            {viewMode === 'pick-best' && hasPhotoPair && (
-              <PickBestView
-                photos={photosList}
-                showNormalized={showNormalized}
-                bestPhotoId={session.best_photo_id}
-                onCurrentPhotoChange={handlePickBestPhoto}
-              />
-            )}
-          </>
+          <CarouselView
+            photos={photosList}
+            showNormalized={showNormalized}
+            bestPhotoId={session.best_photo_id}
+            onSlideChange={handleCarouselSlide}
+          />
         )}
 
         {hasAtLeastOnePhoto && (
