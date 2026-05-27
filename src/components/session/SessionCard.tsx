@@ -1,17 +1,12 @@
-import { useState } from 'react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
-import { ChevronRight, Link2 } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Button } from '@/components/ui/button'
 import type { Session } from '@/integrations/supabase/types'
-import { usePhotos, useUpdateSession, MAX_PHOTOS } from '@/hooks/usePhotoSession'
+import { usePhotos, MAX_PHOTOS } from '@/hooks/usePhotoSession'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { useQueryClient } from '@tanstack/react-query'
-import { makeClientId } from '@/utils/id'
-import { VoteLinkDialog } from '@/components/share/VoteLinkDialog'
 
 interface SessionCardProps {
   session: Session
@@ -23,29 +18,7 @@ interface SessionCardProps {
 
 export function SessionCard({ session, onClick, selectable, selected, onSelectChange }: SessionCardProps) {
   const { t } = useLanguage()
-  const queryClient = useQueryClient()
   const { data: photos } = usePhotos(session.id)
-  const updateSession = useUpdateSession(session.id)
-  const [voteLinkUrl, setVoteLinkUrl] = useState<string | null>(null)
-
-  const handleCopyVoteLink = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    try {
-      let token = session.share_token
-      if (!token) {
-        token = makeClientId().replace(/-/g, '').slice(0, 12)
-        await updateSession.mutateAsync({ share_token: token } as never)
-        queryClient.setQueryData(['session', session.id], (old: typeof session | undefined) =>
-          old ? { ...old, share_token: token } : old
-        )
-        queryClient.invalidateQueries({ queryKey: ['sessions'] })
-      }
-      const url = `${window.location.origin}/app/v/${token}`
-      setVoteLinkUrl(url)
-    } catch (err) {
-      console.error('Copy vote link error:', err)
-    }
-  }
 
   return (
     <Card
@@ -91,24 +64,7 @@ export function SessionCard({ session, onClick, selectable, selected, onSelectCh
             {t(`session.status.${session.status}`)}
           </Badge>
         </div>
-        {/* Строка 3: кнопка голосования */}
-        <div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 px-2"
-            onClick={handleCopyVoteLink}
-          >
-            <Link2 className="h-4 w-4 mr-1" />
-            {t('vote.copyLink')}
-          </Button>
-        </div>
       </CardContent>
-      <VoteLinkDialog
-        url={voteLinkUrl ?? ''}
-        open={!!voteLinkUrl}
-        onOpenChange={(open) => { if (!open) setVoteLinkUrl(null) }}
-      />
     </Card>
   )
 }
