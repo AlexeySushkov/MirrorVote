@@ -9,6 +9,7 @@ import { CompareToolbar } from '@/components/compare/CompareToolbar'
 import { InlineVerdict } from '@/components/analysis/InlineVerdict'
 import { OccasionPicker } from '@/components/analysis/OccasionPicker'
 import { CollageExport } from '@/components/share/CollageExport'
+import { VoteLinkDialog } from '@/components/share/VoteLinkDialog'
 import { Progress } from '@/components/ui/progress'
 import { useSession, usePhotos, useUpdateSession, useUploadPhoto, MAX_PHOTOS } from '@/hooks/usePhotoSession'
 import { supabase } from '@/integrations/supabase/client'
@@ -39,6 +40,7 @@ export function Compare() {
 
   const [analyzing, setAnalyzing] = useState(false)
   const [occasionOpen, setOccasionOpen] = useState(false)
+  const [voteLinkUrl, setVoteLinkUrl] = useState<string | null>(null)
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const [normalizing, setNormalizing] = useState(false)
   const [normalizeProgress, setNormalizeProgress] = useState(0)
@@ -87,8 +89,7 @@ export function Compare() {
         queryClient.invalidateQueries({ queryKey: ['sessions'] })
       }
       const url = `${window.location.origin}/app/v/${token}`
-      await navigator.clipboard.writeText(url)
-      toast.success(t('vote.linkCopied'))
+      setVoteLinkUrl(url)
     } catch (err) {
       console.error('Copy vote link error:', err)
       toast.error(t('vote.error'))
@@ -368,6 +369,11 @@ export function Compare() {
           </div>
         )}
       </div>
+      <VoteLinkDialog
+        url={voteLinkUrl ?? ''}
+        open={!!voteLinkUrl}
+        onOpenChange={(open) => { if (!open) setVoteLinkUrl(null) }}
+      />
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { ChevronRight, Link2 } from 'lucide-react'
@@ -9,8 +10,8 @@ import type { Session } from '@/integrations/supabase/types'
 import { usePhotos, useUpdateSession, MAX_PHOTOS } from '@/hooks/usePhotoSession'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
 import { makeClientId } from '@/utils/id'
+import { VoteLinkDialog } from '@/components/share/VoteLinkDialog'
 
 interface SessionCardProps {
   session: Session
@@ -25,6 +26,7 @@ export function SessionCard({ session, onClick, selectable, selected, onSelectCh
   const queryClient = useQueryClient()
   const { data: photos } = usePhotos(session.id)
   const updateSession = useUpdateSession(session.id)
+  const [voteLinkUrl, setVoteLinkUrl] = useState<string | null>(null)
 
   const handleCopyVoteLink = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -39,11 +41,9 @@ export function SessionCard({ session, onClick, selectable, selected, onSelectCh
         queryClient.invalidateQueries({ queryKey: ['sessions'] })
       }
       const url = `${window.location.origin}/app/v/${token}`
-      await navigator.clipboard.writeText(url)
-      toast.success(t('vote.linkCopied'))
+      setVoteLinkUrl(url)
     } catch (err) {
       console.error('Copy vote link error:', err)
-      toast.error(t('vote.error'))
     }
   }
 
@@ -104,6 +104,11 @@ export function SessionCard({ session, onClick, selectable, selected, onSelectCh
           </Button>
         </div>
       </CardContent>
+      <VoteLinkDialog
+        url={voteLinkUrl ?? ''}
+        open={!!voteLinkUrl}
+        onOpenChange={(open) => { if (!open) setVoteLinkUrl(null) }}
+      />
     </Card>
   )
 }
