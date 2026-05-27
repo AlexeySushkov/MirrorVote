@@ -5,7 +5,7 @@ type Language = 'ru' | 'en'
 const translations: Record<Language, Record<string, string>> = {
   ru: {
     'app.title': 'MirrorVote',
-    'app.tagline': 'AI-помощник в примерочной',
+    'app.tagline': 'AI‑помощник выбора образа',
     'auth.signIn': 'Войти',
     'auth.signUp': 'Регистрация',
     'auth.email': 'Email',
@@ -98,7 +98,7 @@ const translations: Record<Language, Record<string, string>> = {
   },
   en: {
     'app.title': 'MirrorVote',
-    'app.tagline': 'AI fitting room assistant',
+    'app.tagline': 'AI outfit selection assistant',
     'auth.signIn': 'Sign In',
     'auth.signUp': 'Sign Up',
     'auth.email': 'Email',

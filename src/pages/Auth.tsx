@@ -113,7 +113,30 @@ export function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader>
+        <CardHeader className="items-center text-center">
+          <div className="mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" className="w-16 h-16 drop-shadow-md">
+              <defs>
+                <linearGradient id="auth-bg" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#FB923C"/>
+                  <stop offset="100%" stopColor="#DC2626"/>
+                </linearGradient>
+                <linearGradient id="auth-heart" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9"/>
+                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0.6"/>
+                </linearGradient>
+              </defs>
+              <rect width="64" height="64" rx="14" fill="url(#auth-bg)"/>
+              <path d="M32 50 C32 50 10 37 10 24 C10 17 15 12 21 12 C25 12 29 14.5 32 18 C35 14.5 39 12 43 12 C49 12 54 17 54 24 C54 37 32 50 32 50 Z"
+                    fill="url(#auth-heart)"/>
+              <path d="M20 31 L28 40 L46 22"
+                    fill="none" stroke="#DC2626" strokeWidth="5"
+                    strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="14" r="2" fill="#FCD34D"/>
+              <circle cx="52" cy="12" r="1.5" fill="#FCD34D"/>
+              <circle cx="8" cy="30" r="1.5" fill="#FCD34D" opacity="0.7"/>
+            </svg>
+          </div>
           <CardTitle className="font-serif">{t('app.title')}</CardTitle>
           <CardDescription>{t('app.tagline')}</CardDescription>
         </CardHeader>
