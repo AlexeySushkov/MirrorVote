@@ -205,7 +205,7 @@ export function VotePage() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md transition-opacity hover:opacity-90"
           >
-            Попробовать MirrorVote
+            Перейти в MirrorVote
           </a>
         </div>
       </div>
