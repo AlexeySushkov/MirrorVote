@@ -142,7 +142,9 @@ export function Auth() {
         </CardHeader>
         <CardContent className="space-y-4">
           {!isSupabaseConfigured && (
-            <p className="text-sm text-destructive">{supabaseConfigError}</p>
+            <p className="text-sm text-destructive">
+              {navigator.onLine ? supabaseConfigError : t('error.noInternet')}
+            </p>
           )}
 
           {mode === 'signIn' && (
