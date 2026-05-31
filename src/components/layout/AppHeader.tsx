@@ -6,6 +6,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -91,6 +92,10 @@ export function AppHeader() {
                   <DropdownMenuItem onClick={() => signOut()}>
                     <LogOut className="mr-2 h-4 w-4" />
                     {t('nav.logout')}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled className="text-xs text-muted-foreground justify-center cursor-default select-none">
+                    v{__APP_VERSION__} · {__BUILD_DATE__}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

@@ -117,7 +117,7 @@ export function CarouselView({ photos, showNormalized, bestPhotoId, onSlideChang
                   onNext={() => emblaApi?.scrollNext()}
                   onExpand={() => setFullscreen(true)}
                   onHide={visiblePhotos.length > 1 ? () => handleHide(photo.id) : undefined}
-                  onShowAll={visiblePhotos.length === 1 ? handleShowAll : undefined}
+                  onShowAll={visiblePhotos.length === 1 && photos.length > 1 ? handleShowAll : undefined}
                 />
               </div>
             ))}

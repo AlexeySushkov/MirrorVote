@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { StarRating } from '@/components/vote/StarRating'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { toast } from 'sonner'
+import { isNetworkError } from '@/utils/errorToast'
 
 interface PublicPhoto {
   id: string
@@ -71,7 +72,7 @@ export function VotePage() {
       }
     } catch (e) {
       console.error('VotePage fetch error:', e)
-      setError(t('vote.invalidLink'))
+      setError(isNetworkError(e) ? t('error.noInternet') : t('vote.invalidLink'))
     } finally {
       setLoading(false)
     }
@@ -108,7 +109,7 @@ export function VotePage() {
       fetchData(false)
     } catch (e) {
       console.error('submit_rating error:', e)
-      toast.error(t('vote.error'))
+      toast.error(isNetworkError(e) ? t('error.noInternet') : t('vote.error'))
     } finally {
       setSubmitting((prev) => ({ ...prev, [photoId]: false }))
     }
@@ -126,7 +127,7 @@ export function VotePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="text-center">
-          <h1 className="text-xl font-semibold text-foreground mb-2">{t('vote.invalidLink')}</h1>
+          <h1 className="text-xl font-semibold text-foreground mb-2">{error}</h1>
           <p className="text-muted-foreground">{t('vote.invalidLinkDesc')}</p>
         </div>
       </div>

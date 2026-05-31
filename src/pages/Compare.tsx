@@ -17,7 +17,7 @@ import { useCompareMode } from '@/hooks/useCompareMode'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { toast } from 'sonner'
-import { showErrorToast } from '@/utils/errorToast'
+import { showErrorToast, isNetworkError } from '@/utils/errorToast'
 import { makeClientId } from '@/utils/id'
 import type { Photo } from '@/integrations/supabase/types'
 
@@ -74,7 +74,7 @@ export function Compare() {
       setVoteLinkUrl(url)
     } catch (err) {
       console.error('Copy vote link error:', err)
-      toast.error(t('vote.error'))
+      toast.error(isNetworkError(err) ? t('error.noInternet') : t('vote.error'))
     }
   }
 
@@ -240,6 +240,29 @@ export function Compare() {
       <div className="space-y-6">
         {hasAtLeastOnePhoto && (
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => navigate('/sessions')}>
+              <List className="mr-2 h-4 w-4" />
+              {t('nav.sessions')}
+            </Button>
+            {canAddMore && (
+              <Button
+                variant="outline"
+                onClick={() => addPhotoRef.current?.click()}
+                disabled={uploadPhoto.isPending}
+              >
+                {uploadPhoto.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <ImagePlus className="mr-2 h-4 w-4" />
+                )}
+                {t('upload.addMore')}
+              </Button>
+            )}
+          </div>
+        )}
+
+        {hasAtLeastOnePhoto && (
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="destructive"
               onClick={() => setOccasionOpen(true)}
@@ -278,28 +301,10 @@ export function Compare() {
 
         {hasAtLeastOnePhoto && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => navigate('/sessions')}>
-              <List className="mr-2 h-4 w-4" />
-              {t('nav.sessions')}
-            </Button>
-            {canAddMore && (
-              <Button
-                variant="outline"
-                onClick={() => addPhotoRef.current?.click()}
-                disabled={uploadPhoto.isPending}
-              >
-                {uploadPhoto.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <ImagePlus className="mr-2 h-4 w-4" />
-                )}
-                {t('upload.addMore')}
-              </Button>
+            {false && hasPhotoPair && (
+              <CollageExport photos={photosList} bestPhotoId={session?.best_photo_id} />
             )}
-            {hasPhotoPair && (
-              <CollageExport photos={photosList} bestPhotoId={session.best_photo_id} />
-            )}
-            {photosList.some((p) => p.processed_photo_url) && (
+            {false && photosList.some((p) => p.processed_photo_url) && (
               <Button
                 variant={showNormalized ? 'outline' : 'secondary'}
                 onClick={toggleNormalized}
