@@ -1,6 +1,7 @@
 node_modules/
 .env
-.claude/
+.claude/settings.local.json
+.claude/worktrees/
 dist/
 *.jpg
 *.jpeg
@@ -8,8 +9,8 @@ dist/
 !public/*.png
 tsconfig.tsbuildinfo
 supabase/.temp/
-test/
-test*
+/test/
+/test*/
 Landing/
 Landing*/
 doc/

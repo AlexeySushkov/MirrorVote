@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, type ReactNode } from
 
 type Language = 'ru' | 'en'
 
-const translations: Record<Language, Record<string, string>> = {
+export const translations: Record<Language, Record<string, string>> = {
   ru: {
     'app.title': 'MirrorVote',
     'app.tagline': 'AI‑помощник выбора образа',

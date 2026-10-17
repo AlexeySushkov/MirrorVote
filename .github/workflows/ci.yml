@@ -21,5 +21,8 @@ jobs:
 
       # TODO: add `npm run lint` once eslint.config.js exists (ESLint 9 fails without it)
 
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build
