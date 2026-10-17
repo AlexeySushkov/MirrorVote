@@ -12,7 +12,22 @@ npm run preview    # Preview production build locally
 npm run pwa-icons  # Regenerate PWA icons from public/favicon.svg
 ```
 
-No test framework is set up (no test script; `test/` is gitignored). Verify changes with `npm run build` (includes type-check).
+```bash
+npm test                                   # Vitest, all unit tests (run mode)
+npm run test:watch                         # Vitest watch mode
+npx vitest run src/utils/id.test.ts        # single file
+npx vitest run -t "falls back to"          # single test by name
+```
+
+Verify changes with `npm test` and `npm run build` (includes type-check).
+
+### Tests
+
+- Vitest config lives in the `test` block of `vite.config.ts`; tests are colocated `src/**/*.test.{ts,tsx}`; setup in `src/test/setup.ts` (jest-dom matchers)
+- Default environment is `node`; component/hook tests add `// @vitest-environment jsdom` as the first line
+- Conventions and mocking patterns (Supabase client, TanStack Query, `LanguageProvider`): `.claude/skills/write-tests/SKILL.md` (`/write-tests`); subagent `test-writer` covers files changed on the branch
+- New logic in `src/` comes with tests. Edge functions (Deno) are not covered — extract pure logic into `supabase/functions/_shared/` to test it
+- Root folders `test/`, `testReal*/`, `testGen*/` are gitignored photo fixtures, not tests
 
 ## Architecture
 
