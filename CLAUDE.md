@@ -7,12 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev        # Dev server (localhost:5173)
 npm run build      # tsc -b && vite build → dist/
-npm run lint       # ESLint
+npm run lint       # ESLint — currently broken: no eslint.config.js (ESLint 9 requires flat config)
 npm run preview    # Preview production build locally
 npm run pwa-icons  # Regenerate PWA icons from public/favicon.svg
 ```
 
-No test framework is set up (no test script; `test/` is gitignored). Verify changes with `npm run build` (includes type-check) and `npm run lint`.
+No test framework is set up (no test script; `test/` is gitignored). Verify changes with `npm run build` (includes type-check).
 
 ## Architecture
 
@@ -63,6 +63,13 @@ GitHub Secrets (настраиваются один раз в репо → Setti
 - `SSH_PRIVATE_KEY` — приватный ключ от `webuser@mirror-vote.ru`
 - `SUPABASE_URL` — `https://mirror-vote.ru/supabase`
 - `SUPABASE_KEY` — anon-ключ из Supabase Dashboard
+
+## Git Workflow
+
+GitHub Flow — full process in [`CONTRIBUTING.md`](CONTRIBUTING.md). Push to `main` deploys to production, so:
+- Never commit directly to `main`; create a branch from fresh `main` named `<type>/<kebab-description>` (`feat/`, `fix/`, `ui/`, `refactor/`, `docs/`, `chore/`)
+- Conventional Commits (`feat:`, `fix:`, `ui:`, …); run `npm run build` before pushing
+- Open PR with `gh pr create --base main`; CI (`.github/workflows/ci.yml`) runs build; merge with squash
 
 ## Key Conventions
 
