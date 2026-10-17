@@ -12,13 +12,15 @@ npm run preview    # Preview production build locally
 npm run pwa-icons  # Regenerate PWA icons from public/favicon.svg
 ```
 
-**After every change: rebuild and commit `dist/`** — the built output is committed to git and deployed directly to the server via rsync.
+No test framework is set up (no test script; `test/` is gitignored). Verify changes with `npm run build` (includes type-check) and `npm run lint`.
 
 ## Architecture
 
 ### Routing & Entry
 
 - App is served under `/app/` base path (set in `vite.config.ts` and React Router `basename`)
+- Routes: `/`, `/auth`, `/v/:token` (public voting page for shared sessions, no auth), and protected `/sessions`, `/sessions/new`, `/sessions/:id`
+- `vite.config.ts` defines globals `__APP_VERSION__` (from `package.json` `version`) and `__BUILD_DATE__` — bump the version in `package.json` for releases
 - `src/main.tsx` — root: `<App>` + `<PWAUpdatePrompt>` (outside router, always mounted)
 - `src/App.tsx` — providers stack: QueryClient → Language → Auth → Tooltip → BrowserRouter; routes + `<Toaster>`
 - Protected routes wrapped in `<AuthGuard>` (redirects to `/auth` if no user)
@@ -33,7 +35,9 @@ npm run pwa-icons  # Regenerate PWA icons from public/favicon.svg
 
 - Client in `src/integrations/supabase/client.ts` — reads credentials from `window.__APP_CONFIG__` (runtime `config.js` on server) with fallback to `import.meta.env`
 - DB types in `src/integrations/supabase/types.ts` (auto-generated, don't hand-edit)
-- Edge Functions (Deno) in `supabase/functions/`: `analyze-outfits`, `normalize-photo`, `create-yookassa-payment`, `yookassa-webhook`, `cleanup-orphans`
+- DB migrations in `supabase/migrations/`, numbered sequentially (`NNN_description.sql`) — new migration takes the next number
+- Edge Functions (Deno) in `supabase/functions/`: `analyze-outfits`, `normalize-photo`, `create-yookassa-payment`, `yookassa-webhook`, `cleanup-orphans`; shared CORS headers in `supabase/functions/_shared/cors.ts`
+- `yookassa-webhook` has `verify_jwt = false` in `supabase/config.toml` (called by YooKassa, not by users)
 - After deploying edge functions: disable **"Verify JWT with legacy secret"** toggle in Dashboard → Edge Functions → Details (re-check after each redeploy)
 
 ### AI Pipeline
