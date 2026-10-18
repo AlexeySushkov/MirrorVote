@@ -68,7 +68,9 @@ export function NewSession() {
     }
   }
 
-  // @ts-ignore: kept for upcoming normalize button wiring
+  // Kept for upcoming normalize button wiring
+  // @ts-expect-error -- unused for now (noUnusedLocals)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function handleNormalize() {
     if (!user || !sessionId || photosList.length < MIN_PHOTOS) {
       showErrorToast(`Нужно минимум ${MIN_PHOTOS} фото`, `Нужно минимум ${MIN_PHOTOS} фото`, 'NewSession.handleNormalize.validation')

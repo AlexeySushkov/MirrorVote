@@ -29,6 +29,7 @@ git pull
 git switch -c feat/my-feature
 
 # 2. Работать, коммитить небольшими шагами
+npm run lint
 npm test
 npm run build
 git add <файлы>
@@ -38,7 +39,7 @@ git commit -m "feat: краткое описание"
 git push -u origin feat/my-feature
 gh pr create --base main --fill
 
-# 4. Дождаться зелёного CI (test + build), проверить diff в PR
+# 4. Дождаться зелёного CI (lint + test + build), проверить diff в PR
 gh pr checks --watch
 
 # 5. Влить (squash) и удалить ветку — запустится деплой
@@ -58,7 +59,7 @@ git pull
 
 ## CI
 
-`.github/workflows/ci.yml` на каждый PR в `main` запускает `npm test` (Vitest) и `npm run build` (включая проверку типов `tsc`). PR с красным CI не вливаем.
+`.github/workflows/ci.yml` на каждый PR в `main` запускает `npm run lint`, `npm test` (Vitest) и `npm run build` (включая проверку типов `tsc`). PR с красным CI не вливаем.
 
 ## Тесты
 
@@ -67,7 +68,7 @@ git pull
 - Запуск: `npm test`, один файл — `npx vitest run <путь>`, один тест — `-t "имя"`, watch — `npm run test:watch`.
 - Подробные соглашения и моки — `.claude/skills/write-tests/SKILL.md`.
 
-> Lint пока не настроен: нет `eslint.config.js`, и ESLint 9 без него падает. После добавления конфига — включить шаг `npm run lint` в `ci.yml`.
+Lint: `npm run lint` (конфиг `eslint.config.js`). В CI запускается с `--max-warnings 0` — предупреждения тоже валят проверку. Если правило нужно отключить точечно — `// eslint-disable-next-line <правило>` с комментарием, почему.
 
 ## Релиз версии
 
