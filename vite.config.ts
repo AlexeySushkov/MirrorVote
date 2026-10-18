@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import path from 'path'
@@ -104,5 +105,10 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  test: {
+    environment: 'node', // component tests opt in with: // @vitest-environment jsdom
+    setupFiles: './src/test/setup.ts',
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 })
