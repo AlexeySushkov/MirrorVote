@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useGoogleAuthAvailable } from '@/hooks/useGoogleAuthAvailable'
 import { isSupabaseConfigured, supabaseConfigError } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { showErrorToast } from '@/utils/errorToast'
@@ -28,6 +29,7 @@ type SignUpForm = z.infer<typeof signUpSchema>
 export function Auth() {
   const { t } = useLanguage()
   const { user, loading, signIn, signUp, signInWithGoogle, signInAnonymously, resetPassword } = useAuth()
+  const { showGoogle } = useGoogleAuthAvailable()
   const [mode, setMode] = useState<'signIn' | 'signUp' | 'forgot'>('signIn')
 
   const signInForm = useForm<SignInForm>({
@@ -249,14 +251,21 @@ export function Auth() {
               <span className="bg-card px-2 text-muted-foreground">или</span>
             </div>
           </div>
-          <Button variant="outline" className="w-full" onClick={onGoogle}>
-            {t('auth.signInWithGoogle')}
-          </Button>
+          {showGoogle && (
+            <Button variant="outline" className="w-full" onClick={onGoogle}>
+              {t('auth.signInWithGoogle')}
+            </Button>
+          )}
           <Button variant="ghost" className="w-full text-muted-foreground" onClick={onAnonymous}>
             {t('auth.signInAnonymously')}
           </Button>
           <p className="text-xs text-center text-muted-foreground">
             {t('auth.anonymousWarning')}
+          </p>
+          <p className="text-xs text-center text-muted-foreground">
+            <a href="https://db-ip.com" target="_blank" rel="noopener noreferrer" className="hover:underline">
+              IP Geolocation by DB-IP
+            </a>
           </p>
         </CardContent>
       </Card>

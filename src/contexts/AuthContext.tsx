@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import type { User } from '@supabase/supabase-js'
+import { markGoogleUsed } from '@/utils/geo'
 
 interface AuthContextType {
   user: User | null
@@ -22,9 +23,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const rememberGoogle = (u: User | null | undefined) => {
+      if (u?.identities?.some((i) => i.provider === 'google')) markGoogleUsed()
+    }
+
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         setUser(session?.user ?? null)
+        rememberGoogle(session?.user)
       })
       .catch((err) => {
         console.error('Auth init error:', err)
@@ -33,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      rememberGoogle(session?.user)
     })
 
     return () => subscription.unsubscribe()
