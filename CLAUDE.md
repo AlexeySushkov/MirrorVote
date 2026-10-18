@@ -1,72 +1,72 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Этот файл содержит инструкции для Claude Code (claude.ai/code) по работе с кодом в этом репозитории.
 
-## Commands
+## Команды
 
 ```bash
-npm run dev        # Dev server (localhost:5173)
+npm run dev        # Dev-сервер (localhost:5173)
 npm run build      # tsc -b && vite build → dist/
-npm run lint       # ESLint — currently broken: no eslint.config.js (ESLint 9 requires flat config)
-npm run preview    # Preview production build locally
-npm run pwa-icons  # Regenerate PWA icons from public/favicon.svg
+npm run lint       # ESLint — сейчас не работает: нет eslint.config.js (ESLint 9 требует flat config)
+npm run preview    # Локальный просмотр production-сборки
+npm run pwa-icons  # Перегенерировать PWA-иконки из public/favicon.svg
 ```
 
 ```bash
-npm test                                   # Vitest, all unit tests (run mode)
-npm run test:watch                         # Vitest watch mode
-npx vitest run src/utils/id.test.ts        # single file
-npx vitest run -t "falls back to"          # single test by name
+npm test                                   # Vitest, все unit-тесты (однократный запуск)
+npm run test:watch                         # Vitest в watch-режиме
+npx vitest run src/utils/id.test.ts        # один файл
+npx vitest run -t "falls back to"          # один тест по имени
 ```
 
-Verify changes with `npm test` and `npm run build` (includes type-check).
+Проверять изменения через `npm test` и `npm run build` (включает проверку типов).
 
-### Tests
+### Тесты
 
-- Vitest config lives in the `test` block of `vite.config.ts`; tests are colocated `src/**/*.test.{ts,tsx}`; setup in `src/test/setup.ts` (jest-dom matchers)
-- Default environment is `node`; component/hook tests add `// @vitest-environment jsdom` as the first line
-- Conventions and mocking patterns (Supabase client, TanStack Query, `LanguageProvider`): `.claude/skills/write-tests/SKILL.md` (`/write-tests`); subagent `test-writer` covers files changed on the branch
-- New logic in `src/` comes with tests. Edge functions (Deno) are not covered — extract pure logic into `supabase/functions/_shared/` to test it
-- Root folders `test/`, `testReal*/`, `testGen*/` are gitignored photo fixtures, not tests
+- Конфиг Vitest — блок `test` в `vite.config.ts`; тесты лежат рядом с кодом: `src/**/*.test.{ts,tsx}`; setup — `src/test/setup.ts` (матчеры jest-dom)
+- Окружение по умолчанию — `node`; тесты компонентов/хуков добавляют первой строкой `// @vitest-environment jsdom`
+- Соглашения и паттерны моков (клиент Supabase, TanStack Query, `LanguageProvider`): `.claude/skills/write-tests/SKILL.md` (`/write-tests`); сабагент `test-writer` покрывает тестами файлы, изменённые в ветке
+- Новая логика в `src/` — вместе с тестами. Edge-функции (Deno) тестами не покрыты — чтобы протестировать, выносить чистую логику в `supabase/functions/_shared/`
+- Папки в корне `test/`, `testReal*/`, `testGen*/` — игнорируемые git фото-фикстуры, а не тесты
 
-## Architecture
+## Архитектура
 
-### Routing & Entry
+### Роутинг и точка входа
 
-- App is served under `/app/` base path (set in `vite.config.ts` and React Router `basename`)
-- Routes: `/`, `/auth`, `/v/:token` (public voting page for shared sessions, no auth), and protected `/sessions`, `/sessions/new`, `/sessions/:id`
-- `vite.config.ts` defines globals `__APP_VERSION__` (from `package.json` `version`) and `__BUILD_DATE__` — version is bumped by release-please (see Git Workflow)
-- `src/main.tsx` — root: `<App>` + `<PWAUpdatePrompt>` (outside router, always mounted)
-- `src/App.tsx` — providers stack: QueryClient → Language → Auth → Tooltip → BrowserRouter; routes + `<Toaster>`
-- Protected routes wrapped in `<AuthGuard>` (redirects to `/auth` if no user)
+- Приложение отдаётся по базовому пути `/app/` (задан в `vite.config.ts` и в `basename` React Router)
+- Маршруты: `/`, `/auth`, `/v/:token` (публичная страница голосования по ссылке, без авторизации) и защищённые `/sessions`, `/sessions/new`, `/sessions/:id`
+- `vite.config.ts` задаёт глобальные константы `__APP_VERSION__` (из `version` в `package.json`) и `__BUILD_DATE__` — версию поднимает release-please (см. «Git-процесс»)
+- `src/main.tsx` — корень: `<App>` + `<PWAUpdatePrompt>` (вне роутера, смонтирован всегда)
+- `src/App.tsx` — стек провайдеров: QueryClient → Language → Auth → Tooltip → BrowserRouter; маршруты + `<Toaster>`
+- Защищённые маршруты обёрнуты в `<AuthGuard>` (редирект на `/auth`, если нет пользователя)
 
-### State & Data
+### Состояние и данные
 
-- **Server state:** TanStack Query via custom hooks (`usePhotoSession`, `useOutfitAnalysis`, `usePhotoNormalization`)
-- **Global state:** Two React contexts — `AuthContext` (user, sign-in/out, anonymous mode) and `LanguageContext` (i18n ru/en, translations as inline record keyed by `'section.key'`)
-- **Local UI state:** `useCompareMode` (view mode), `useState` in components
+- **Серверное состояние:** TanStack Query через свои хуки (`usePhotoSession`, `useOutfitAnalysis`, `usePhotoNormalization`)
+- **Глобальное состояние:** два React-контекста — `AuthContext` (пользователь, вход/выход, анонимный режим) и `LanguageContext` (i18n ru/en, переводы — inline-объект с ключами вида `'section.key'`)
+- **Локальное UI-состояние:** `useCompareMode` (режим просмотра), `useState` в компонентах
 
-### Supabase Integration
+### Интеграция с Supabase
 
-- Client in `src/integrations/supabase/client.ts` — reads credentials from `window.__APP_CONFIG__` (runtime `config.js` on server) with fallback to `import.meta.env`
-- DB types in `src/integrations/supabase/types.ts` (auto-generated, don't hand-edit)
-- DB migrations in `supabase/migrations/`, numbered sequentially (`NNN_description.sql`) — new migration takes the next number
-- Edge Functions (Deno) in `supabase/functions/`: `analyze-outfits`, `normalize-photo`, `create-yookassa-payment`, `yookassa-webhook`, `cleanup-orphans`; shared CORS headers in `supabase/functions/_shared/cors.ts`
-- `yookassa-webhook` has `verify_jwt = false` in `supabase/config.toml` (called by YooKassa, not by users)
-- After deploying edge functions: disable **"Verify JWT with legacy secret"** toggle in Dashboard → Edge Functions → Details (re-check after each redeploy)
+- Клиент — `src/integrations/supabase/client.ts`: берёт ключи из `window.__APP_CONFIG__` (runtime `config.js` на сервере), fallback — `import.meta.env`
+- Типы БД — `src/integrations/supabase/types.ts` (сгенерированы автоматически, вручную не править)
+- Миграции БД — `supabase/migrations/`, нумерация по порядку (`NNN_description.sql`) — новая миграция берёт следующий номер
+- Edge Functions (Deno) в `supabase/functions/`: `analyze-outfits`, `normalize-photo`, `create-yookassa-payment`, `yookassa-webhook`, `cleanup-orphans`; общие CORS-заголовки — `supabase/functions/_shared/cors.ts`
+- У `yookassa-webhook` стоит `verify_jwt = false` в `supabase/config.toml` (его вызывает YooKassa, а не пользователи)
+- После деплоя edge-функций: выключить тумблер **«Verify JWT with legacy secret»** в Dashboard → Edge Functions → Details (перепроверять после каждого передеплоя)
 
-### AI Pipeline
+### AI-пайплайн
 
-1. **Photo normalization** (`normalize-photo` edge function) — calls OpenRouter image model (default: `google/gemini-2.5-flash-image`) to replace background + standardize pose. Stores result URL in `mirror_photos.processed_photo_url`
-2. **Outfit analysis** (`analyze-outfits` edge function) — calls OpenRouter text model (default: `google/gemini-2.5-flash`) with occasion context. Returns per-photo scores + recommendation JSON. Calls `consume_analysis_credit()` RPC first (quota enforcement)
+1. **Нормализация фото** (edge-функция `normalize-photo`) — вызывает image-модель OpenRouter (по умолчанию `google/gemini-2.5-flash-image`): заменяет фон и выравнивает позу. URL результата сохраняется в `mirror_photos.processed_photo_url`
+2. **Анализ образов** (edge-функция `analyze-outfits`) — вызывает текстовую модель OpenRouter (по умолчанию `google/gemini-2.5-flash`) с учётом случая (occasion). Возвращает JSON с оценками по каждому фото и рекомендацией. Сначала вызывает RPC `consume_analysis_credit()` (контроль квоты)
 
 ### PWA
 
-- `vite-plugin-pwa` with `registerType: 'prompt'`, `skipWaiting: false`, `clientsClaim: true`
-- `PWAUpdatePrompt` component shows update banner; onClick sends `SKIP_WAITING` + has 1s fallback reload
-- `config.js` excluded from precache (runtime config must always be fetched fresh)
+- `vite-plugin-pwa` с `registerType: 'prompt'`, `skipWaiting: false`, `clientsClaim: true`
+- Компонент `PWAUpdatePrompt` показывает баннер обновления; по клику отправляет `SKIP_WAITING` + fallback-перезагрузка через 1 с
+- `config.js` исключён из precache (runtime-конфиг всегда должен загружаться заново)
 
-### Deployment (GitHub Actions CI/CD)
+### Деплой (GitHub Actions CI/CD)
 
 Push в `main` → автоматически: сборка → inject `config.js` из GitHub Secrets → rsync на сервер.
 
@@ -79,19 +79,19 @@ GitHub Secrets (настраиваются один раз в репо → Setti
 - `SUPABASE_URL` — `https://mirror-vote.ru/supabase`
 - `SUPABASE_KEY` — anon-ключ из Supabase Dashboard
 
-## Git Workflow
+## Git-процесс
 
-GitHub Flow — full process in [`CONTRIBUTING.md`](CONTRIBUTING.md). Push to `main` deploys to production, so:
-- Never commit directly to `main`; create a branch from fresh `main` named `<type>/<kebab-description>` (`feat/`, `fix/`, `ui/`, `refactor/`, `docs/`, `chore/`)
-- Conventional Commits (`feat:`, `fix:`, `ui:`, …); run `npm test` and `npm run build` before pushing
-- Open PR with `gh pr create --base main`; CI (`.github/workflows/ci.yml`) runs tests + build; merge with squash
-- The PR title becomes the squash commit and drives versioning — pick the type deliberately (`feat` → minor, `fix`/`ui`/`perf` → patch, `!` → major, `docs`/`chore`/`test`/`refactor` → no release)
-- Versions are managed by release-please (`release-please-config.json`, `.release-please-manifest.json`): never hand-edit `version` in `package.json` or `CHANGELOG.md`; releasing = merging the bot's `chore: release vX.Y.Z` PR
+GitHub Flow — полный процесс в [`CONTRIBUTING.md`](CONTRIBUTING.md). Push в `main` деплоит на прод, поэтому:
+- Никогда не коммитить напрямую в `main`; создавать ветку от свежего `main` с именем `<тип>/<описание-в-kebab-case>` (`feat/`, `fix/`, `ui/`, `refactor/`, `docs/`, `chore/`)
+- Conventional Commits (`feat:`, `fix:`, `ui:`, …); перед push запускать `npm test` и `npm run build`
+- PR открывать через `gh pr create --base main`; CI (`.github/workflows/ci.yml`) запускает тесты + сборку; вливать через squash
+- Заголовок PR становится squash-коммитом и определяет версию — тип выбирать осознанно (`feat` → minor, `fix`/`ui`/`perf` → patch, `!` → major, `docs`/`chore`/`test`/`refactor` → без релиза)
+- Версиями управляет release-please (`release-please-config.json`, `.release-please-manifest.json`): никогда не править вручную `version` в `package.json` и `CHANGELOG.md`; релиз = merge PR бота `chore: release vX.Y.Z`
 
-## Key Conventions
+## Ключевые соглашения
 
-- **Translations:** add keys to both `ru` and `en` objects in `src/contexts/LanguageContext.tsx`; use `t('section.key')` in components
-- **Error toasts:** use `src/utils/errorToast.ts` helper; edge function errors parsed via `src/utils/supabaseFunctionError.ts`
-- **Image IDs:** use `src/utils/id.ts` (wraps `crypto.randomUUID()` safely — don't call `randomUUID` directly as a reference, must call on `crypto` object)
-- **File limits:** see `src/utils/constants.ts` (max file size, accepted formats)
-- **Supabase Storage:** bucket `mirror_photos` is public — files accessible by URL without auth
+- **Переводы:** добавлять ключи в оба объекта `ru` и `en` в `src/contexts/LanguageContext.tsx`; в компонентах использовать `t('section.key')`
+- **Тосты ошибок:** использовать хелпер `src/utils/errorToast.ts`; ошибки edge-функций разбираются через `src/utils/supabaseFunctionError.ts`
+- **ID изображений:** использовать `src/utils/id.ts` (безопасная обёртка над `crypto.randomUUID()` — не вызывать `randomUUID` как отдельную ссылку, только как метод объекта `crypto`)
+- **Лимиты файлов:** см. `src/utils/constants.ts` (максимальный размер, допустимые форматы)
+- **Supabase Storage:** бакет `mirror_photos` публичный — файлы доступны по URL без авторизации
