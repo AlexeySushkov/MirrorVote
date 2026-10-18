@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "2e161e975f2a3376806c705e73db8163105542e6",
+  "include-component-in-tag": false,
+  "pull-request-title-pattern": "chore: release v${version}",
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "changelog-sections": [
+        { "type": "feat", "section": "Новое" },
+        { "type": "fix", "section": "Исправления" },
+        { "type": "ui", "section": "Интерфейс" },
+        { "type": "perf", "section": "Производительность" },
+        { "type": "revert", "section": "Откаты" },
+        { "type": "refactor", "section": "Рефакторинг", "hidden": true },
+        { "type": "docs", "section": "Документация", "hidden": true },
+        { "type": "test", "section": "Тесты", "hidden": true },
+        { "type": "chore", "section": "Прочее", "hidden": true }
+      ]
+    }
+  }
+}
