@@ -2,6 +2,19 @@
 
 Новые версии добавляет [release-please](https://github.com/googleapis/release-please) из заголовков влитых PR (Conventional Commits).
 
+## [1.1.0](https://github.com/AlexeySushkov/MirrorVote/compare/v1.0.5...v1.1.0) (2026-10-18)
+
+
+### Новое
+
+* hide Google sign-in for users in Russia ([#4](https://github.com/AlexeySushkov/MirrorVote/issues/4)) ([798976b](https://github.com/AlexeySushkov/MirrorVote/commit/798976bfb3871d9c27c035fef260bad3e9981fc2))
+
+
+### Исправления
+
+* set Google marker only for OAuth sessions ([#5](https://github.com/AlexeySushkov/MirrorVote/issues/5)) ([80d7ea8](https://github.com/AlexeySushkov/MirrorVote/commit/80d7ea8290d942dd6c8a105022f1cd62dff0c5b3))
+* show no-internet error instead of Supabase config error when offline ([788d512](https://github.com/AlexeySushkov/MirrorVote/commit/788d5122db086d423291465b7ad4371e466aad56))
+
 ## 1.0.5 и ранее
 
 История до перехода на release-please (по датам).
