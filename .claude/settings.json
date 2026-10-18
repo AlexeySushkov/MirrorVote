@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)"
+    ]
+  },
+  "hooks": {
+  "Stop": [
+      { "hooks": [ { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/run-tests.mjs\"", "timeout": 180 } ] }
+    ]
+  }
+}
