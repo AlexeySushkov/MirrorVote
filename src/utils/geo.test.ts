@@ -3,6 +3,7 @@ import {
   GOOGLE_USED_KEY,
   fetchCountry,
   hasUsedGoogle,
+  isGoogleSession,
   isRussianTimezone,
   markGoogleUsed,
   shouldShowGoogle,
@@ -83,6 +84,33 @@ describe('fetchCountry', () => {
     const fetchMock = stubFetch(async () => new Response('{"country":"DE"}'))
     await expect(fetchCountry()).resolves.toBe('RU')
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('isGoogleSession', () => {
+  const jwt = (payload: object) =>
+    `h.${btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}.s`
+  const googleUser = { identities: [{ provider: 'email' }, { provider: 'google' }] }
+
+  it('is true for an OAuth session of a user with a Google identity', () => {
+    const session = { access_token: jwt({ amr: [{ method: 'oauth', timestamp: 1 }] }), user: googleUser }
+    expect(isGoogleSession(session)).toBe(true)
+  })
+
+  it('is false for a password sign-in even if Google identity is linked', () => {
+    const session = { access_token: jwt({ amr: [{ method: 'password', timestamp: 1 }] }), user: googleUser }
+    expect(isGoogleSession(session)).toBe(false)
+  })
+
+  it('is false for OAuth without a Google identity', () => {
+    const session = { access_token: jwt({ amr: [{ method: 'oauth' }] }), user: { identities: [{ provider: 'email' }] } }
+    expect(isGoogleSession(session)).toBe(false)
+  })
+
+  it('is false for missing session, malformed token or missing amr', () => {
+    expect(isGoogleSession(null)).toBe(false)
+    expect(isGoogleSession({ access_token: 'garbage', user: googleUser })).toBe(false)
+    expect(isGoogleSession({ access_token: jwt({}), user: googleUser })).toBe(false)
   })
 })
 

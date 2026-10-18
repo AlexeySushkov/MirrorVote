@@ -65,6 +65,27 @@ export function getBrowserTimezone(): string | undefined {
 
 export const isRussianTimezone = (tz?: string): boolean => Boolean(tz && RU_TIMEZONES.has(tz))
 
+const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
+  try {
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    return JSON.parse(atob(b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=')))
+  } catch {
+    return null
+  }
+}
+
+// True only if the *current* session was obtained via Google OAuth.
+// `user.identities` isn't enough: Supabase auto-links a Google identity to an
+// email/password account with the same email, so it shows up on password sign-ins too.
+export function isGoogleSession(
+  session: { access_token: string; user: { identities?: { provider: string }[] } } | null | undefined,
+): boolean {
+  if (!session) return false
+  const amr = decodeJwtPayload(session.access_token)?.amr
+  const viaOAuth = Array.isArray(amr) && amr.some((e) => (e as { method?: unknown })?.method === 'oauth')
+  return viaOAuth && Boolean(session.user.identities?.some((i) => i.provider === 'google'))
+}
+
 export function markGoogleUsed(): void {
   try {
     localStorage.setItem(GOOGLE_USED_KEY, '1')
