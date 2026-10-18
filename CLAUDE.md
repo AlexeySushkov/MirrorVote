@@ -87,6 +87,7 @@ GitHub Flow — полный процесс в [`CONTRIBUTING.md`](CONTRIBUTING.
 - PR открывать через `gh pr create --base main`; CI (`.github/workflows/ci.yml`) запускает lint + тесты + сборку; вливать через squash
 - Заголовок PR становится squash-коммитом и определяет версию — тип выбирать осознанно (`feat` → minor, `fix`/`ui`/`perf` → patch, `!` → major, `docs`/`chore`/`test`/`refactor` → без релиза)
 - Версиями управляет release-please (`release-please-config.json`, `.release-please-manifest.json`): никогда не править вручную `version` в `package.json` и `CHANGELOG.md`; релиз = merge PR бота `chore: release vX.Y.Z`
+- Ревью PR: `/review-pr [номер]` — проверка по чек-листу проекта (тот же, что в `.github/pull_request_template.md`)
 
 ## Ключевые соглашения
 

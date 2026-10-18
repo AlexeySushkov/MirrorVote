@@ -57,6 +57,18 @@ git pull
 [Conventional Commits](https://www.conventionalcommits.org/): `<тип>: <описание>` — `feat:`, `fix:`, `ui:`, `refactor:`, `docs:`, `chore:`.
 Одна логическая правка — один коммит. При squash merge заголовок PR становится коммитом в `main`, поэтому заголовок PR пишем в том же формате.
 
+## Code review
+
+Шаблон описания PR — `.github/pull_request_template.md` (чек-лист подставляется автоматически).
+
+1. Прочитать свой diff в GitHub (`gh pr view --web`) — до запроса ревью.
+2. В Claude Code: `/review-pr` (или `/review-pr <номер>`) — проверка по чек-листу проекта.
+3. `/code-review` — поиск багов в diff; `/security-review` — если затронуты `supabase/`, авторизация или оплата.
+4. Нет тестов на новую логику — сабагент `test-writer`.
+5. Зелёный CI → squash merge. Комментарии помечаем `blocker:` / `suggestion:` / `nit:` / `question:`.
+
+Рекомендуется включить защиту ветки `main` (GitHub → Settings → Branches): обязательная проверка CI и запрет прямого push.
+
 ## CI
 
 `.github/workflows/ci.yml` на каждый PR в `main` запускает `npm run lint`, `npm test` (Vitest) и `npm run build` (включая проверку типов `tsc`). PR с красным CI не вливаем.
