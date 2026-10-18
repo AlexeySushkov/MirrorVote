@@ -76,6 +76,9 @@ export function VotePage() {
     } finally {
       setLoading(false)
     }
+    // `data` is read from the last token/language change on purpose: no spinner on language switch,
+    // and adding it would refetch in a loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, t])
 
   const handleRefresh = async () => {

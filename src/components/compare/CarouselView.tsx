@@ -38,6 +38,8 @@ export function CarouselView({ photos, showNormalized, bestPhotoId, onSlideChang
     emblaApi.reInit()
     const maxIdx = Math.max(0, visiblePhotos.length - 1)
     emblaApi.scrollTo(Math.min(selectedIndex, maxIdx), true)
+    // Only on hide/show-all: adding selectedIndex would re-scroll on every slide change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hiddenIds, emblaApi])
 
   const swipeStartX = useRef<number | null>(null)
@@ -100,7 +102,7 @@ export function CarouselView({ photos, showNormalized, bestPhotoId, onSlideChang
   const currentPhoto = visiblePhotos[selectedIndex] ?? visiblePhotos[0]
   const hasProcessed = Boolean(currentPhoto?.processed_photo_url)
   const showingProcessed = showNormalized && hasProcessed && !peekOriginal
-  const imgUrl = showingProcessed ? currentPhoto?.processed_photo_url! : currentPhoto?.photo_url
+  const imgUrl = (showingProcessed && currentPhoto?.processed_photo_url) || currentPhoto?.photo_url
 
   return (
     <>

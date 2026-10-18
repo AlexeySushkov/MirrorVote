@@ -21,6 +21,9 @@ import { showErrorToast, isNetworkError } from '@/utils/errorToast'
 import { makeClientId } from '@/utils/id'
 import type { Photo } from '@/integrations/supabase/types'
 
+// Collage export and Original toggle are temporarily hidden (since v1.0.5)
+const SHOW_HIDDEN_ACTIONS = false
+
 export function Compare() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -301,10 +304,10 @@ export function Compare() {
 
         {hasAtLeastOnePhoto && (
           <div className="flex flex-wrap gap-2">
-            {false && hasPhotoPair && (
+            {SHOW_HIDDEN_ACTIONS && hasPhotoPair && (
               <CollageExport photos={photosList} bestPhotoId={session?.best_photo_id} />
             )}
-            {false && photosList.some((p) => p.processed_photo_url) && (
+            {SHOW_HIDDEN_ACTIONS && photosList.some((p) => p.processed_photo_url) && (
               <Button
                 variant={showNormalized ? 'outline' : 'secondary'}
                 onClick={toggleNormalized}

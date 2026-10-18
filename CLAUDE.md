@@ -7,7 +7,7 @@
 ```bash
 npm run dev        # Dev-сервер (localhost:5173)
 npm run build      # tsc -b && vite build → dist/
-npm run lint       # ESLint — сейчас не работает: нет eslint.config.js (ESLint 9 требует flat config)
+npm run lint       # ESLint (eslint.config.js); в CI — с --max-warnings 0
 npm run preview    # Локальный просмотр production-сборки
 npm run pwa-icons  # Перегенерировать PWA-иконки из public/favicon.svg
 ```
@@ -83,8 +83,8 @@ GitHub Secrets (настраиваются один раз в репо → Setti
 
 GitHub Flow — полный процесс в [`CONTRIBUTING.md`](CONTRIBUTING.md). Push в `main` деплоит на прод, поэтому:
 - Никогда не коммитить напрямую в `main`; создавать ветку от свежего `main` с именем `<тип>/<описание-в-kebab-case>` (`feat/`, `fix/`, `ui/`, `refactor/`, `docs/`, `chore/`)
-- Conventional Commits (`feat:`, `fix:`, `ui:`, …); перед push запускать `npm test` и `npm run build`
-- PR открывать через `gh pr create --base main`; CI (`.github/workflows/ci.yml`) запускает тесты + сборку; вливать через squash
+- Conventional Commits (`feat:`, `fix:`, `ui:`, …); перед push запускать `npm run lint`, `npm test` и `npm run build`
+- PR открывать через `gh pr create --base main`; CI (`.github/workflows/ci.yml`) запускает lint + тесты + сборку; вливать через squash
 - Заголовок PR становится squash-коммитом и определяет версию — тип выбирать осознанно (`feat` → minor, `fix`/`ui`/`perf` → patch, `!` → major, `docs`/`chore`/`test`/`refactor` → без релиза)
 - Версиями управляет release-please (`release-please-config.json`, `.release-please-manifest.json`): никогда не править вручную `version` в `package.json` и `CHANGELOG.md`; релиз = merge PR бота `chore: release vX.Y.Z`
 
