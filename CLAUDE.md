@@ -35,7 +35,7 @@ Verify changes with `npm test` and `npm run build` (includes type-check).
 
 - App is served under `/app/` base path (set in `vite.config.ts` and React Router `basename`)
 - Routes: `/`, `/auth`, `/v/:token` (public voting page for shared sessions, no auth), and protected `/sessions`, `/sessions/new`, `/sessions/:id`
-- `vite.config.ts` defines globals `__APP_VERSION__` (from `package.json` `version`) and `__BUILD_DATE__` — bump the version in `package.json` for releases
+- `vite.config.ts` defines globals `__APP_VERSION__` (from `package.json` `version`) and `__BUILD_DATE__` — version is bumped by release-please (see Git Workflow)
 - `src/main.tsx` — root: `<App>` + `<PWAUpdatePrompt>` (outside router, always mounted)
 - `src/App.tsx` — providers stack: QueryClient → Language → Auth → Tooltip → BrowserRouter; routes + `<Toaster>`
 - Protected routes wrapped in `<AuthGuard>` (redirects to `/auth` if no user)
@@ -83,8 +83,10 @@ GitHub Secrets (настраиваются один раз в репо → Setti
 
 GitHub Flow — full process in [`CONTRIBUTING.md`](CONTRIBUTING.md). Push to `main` deploys to production, so:
 - Never commit directly to `main`; create a branch from fresh `main` named `<type>/<kebab-description>` (`feat/`, `fix/`, `ui/`, `refactor/`, `docs/`, `chore/`)
-- Conventional Commits (`feat:`, `fix:`, `ui:`, …); run `npm run build` before pushing
-- Open PR with `gh pr create --base main`; CI (`.github/workflows/ci.yml`) runs build; merge with squash
+- Conventional Commits (`feat:`, `fix:`, `ui:`, …); run `npm test` and `npm run build` before pushing
+- Open PR with `gh pr create --base main`; CI (`.github/workflows/ci.yml`) runs tests + build; merge with squash
+- The PR title becomes the squash commit and drives versioning — pick the type deliberately (`feat` → minor, `fix`/`ui`/`perf` → patch, `!` → major, `docs`/`chore`/`test`/`refactor` → no release)
+- Versions are managed by release-please (`release-please-config.json`, `.release-please-manifest.json`): never hand-edit `version` in `package.json` or `CHANGELOG.md`; releasing = merging the bot's `chore: release vX.Y.Z` PR
 
 ## Key Conventions
 

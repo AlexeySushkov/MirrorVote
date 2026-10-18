@@ -71,9 +71,21 @@ git pull
 
 ## Релиз версии
 
-1. В ветке поднять `version` в `package.json` (показывается в приложении через `__APP_VERSION__`) по SemVer: `fix` → patch, `feat` → minor.
-2. Добавить запись в changelog в `README.md`.
-3. После merge — по желанию тег: `git tag v1.0.6 && git push origin v1.0.6`.
+Версии считает [release-please](https://github.com/googleapis/release-please) (`.github/workflows/release-please.yml`). Вручную `version` в `package.json` и `CHANGELOG.md` **не трогаем**.
+
+1. Вливаем PR как обычно. Тип в заголовке PR (он становится коммитом при squash) определяет версию по SemVer:
+
+   | Заголовок PR                     | Версия           | Раздел в CHANGELOG |
+   |----------------------------------|------------------|--------------------|
+   | `feat: ...`                      | minor `1.1.0`    | Новое              |
+   | `fix: ...`, `ui: ...`, `perf: ...` | patch `1.0.6`  | Исправления / Интерфейс / Производительность |
+   | `feat!: ...` или `BREAKING CHANGE:` в описании | major `2.0.0` | — |
+   | `docs:`, `chore:`, `test:`, `refactor:` | без релиза | не попадают |
+
+2. После каждого merge release-please открывает или обновляет PR **`chore: release vX.Y.Z`**: в нём поднята версия в `package.json`/`package-lock.json` и дописан `CHANGELOG.md`.
+3. Когда хотим выпустить релиз — вливаем этот PR. Создаются тег `vX.Y.Z` и GitHub Release, деплой запускается как при любом merge в `main`. Номер в приложении (`__APP_VERSION__`) обновится этим деплоем.
+
+Деплой не ждёт релиза: между релизами на проде может быть код новее номера версии.
 
 ## Supabase
 
