@@ -150,6 +150,11 @@ supabase db push
 - Email/Password
 - Google OAuth (при необходимости)
 
+Кнопка «Войти через Google» **скрыта для пользователей из России** (406-ФЗ), см. `src/utils/geo.ts`:
+- страна берётся из `/app/geo.json` (nginx + GeoIP, см. [§ 2.1](#21-определение-страны-geoip-опционально)); если он не настроен — по часовому поясу браузера;
+- после входа через Google ставится метка `mv:usedGoogleAuth` в `localStorage` — кнопка остаётся видна при включении/выключении VPN;
+- в dev страну можно подменить: `VITE_GEO_COUNTRY=RU` в `.env`.
+
 ## Структура проекта
 
 ```
@@ -415,6 +420,50 @@ server {
     }
 }
 ```
+
+### 2.1. Определение страны (GeoIP, опционально)
+
+Нужно, чтобы скрывать вход через Google для пользователей из РФ по IP. Без этого блока приложение работает: `/app/geo.json` отдаёт `index.html`, и фронт определяет страну по часовому поясу браузера.
+
+База — [DB-IP Lite Country](https://db-ip.com/db/download/ip-to-country-lite) (бесплатно, без регистрации, CC BY 4.0 — атрибуция «IP Geolocation by DB-IP» уже есть на странице входа).
+
+> ⚠️ **Порядок важен:** сначала скачайте базу, потом добавляйте `geoip2` в конфиг. Если файла `.mmdb` нет, nginx не запустится и ляжет весь сайт. Всегда `nginx -t` перед reload.
+
+1. Модуль (nginx должен быть из репозитория дистрибутива — проверьте `apt policy nginx`):
+   ```bash
+   sudo apt install libnginx-mod-http-geoip2 mmdb-bin
+   ```
+2. Скрипт `/usr/local/bin/update-dbip.sh`:
+   ```sh
+   #!/bin/sh
+   set -e
+   mkdir -p /var/lib/GeoIP
+   URL="https://download.db-ip.com/free/dbip-country-lite-$(date +%Y-%m).mmdb.gz"
+   curl -fsSL "$URL" | gunzip > /var/lib/GeoIP/dbip-country.mmdb.tmp
+   mv /var/lib/GeoIP/dbip-country.mmdb.tmp /var/lib/GeoIP/dbip-country.mmdb
+   ```
+   ```bash
+   sudo chmod +x /usr/local/bin/update-dbip.sh
+   sudo /usr/local/bin/update-dbip.sh
+   mmdblookup --file /var/lib/GeoIP/dbip-country.mmdb --ip 77.88.8.8 country iso_code   # → "RU"
+   echo '0 5 3 * * root /usr/local/bin/update-dbip.sh' | sudo tee /etc/cron.d/dbip
+   ```
+3. В `/etc/nginx/nginx.conf`, внутри `http { }`:
+   ```nginx
+   geoip2 /var/lib/GeoIP/dbip-country.mmdb {
+       auto_reload 6h;
+       $geoip2_country_code country iso_code;
+   }
+   ```
+4. В `mirror-vote.ru.conf`, внутри `server { listen 443 ... }`, перед `location ^~ /app`:
+   ```nginx
+   location = /app/geo.json {
+       default_type application/json;
+       add_header Cache-Control "no-store";
+       return 200 '{"country":"$geoip2_country_code"}';
+   }
+   ```
+5. `sudo nginx -t && sudo systemctl reload nginx`, проверка: `curl https://mirror-vote.ru/app/geo.json`.
 
 ### 3. Проверка и перезапуск nginx
 
